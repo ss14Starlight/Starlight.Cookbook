@@ -31,6 +31,7 @@ export type Component =
   | StomachComponent
   | TagComponent
   | ToolRefinableComponent
+  | VendingMachineComponent
   ;
 
 export interface ButcherableComponent {
@@ -180,4 +181,9 @@ export interface ToolRefinableComponent {
   readonly type: 'ToolRefinable';
   readonly refineResult?: readonly EntitySpawnEntry[];
   readonly qualityNeeded: string;
+}
+
+export interface VendingMachineComponent {
+  readonly type: 'VendingMachine';
+  readonly pack?: string;
 }

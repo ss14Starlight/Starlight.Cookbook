@@ -16,6 +16,7 @@ export type MicrowaveMealRecipeId = ProtoId<'microwaveMealRecipe'>;
 export type ReactionId = ProtoId<'reaction'>;
 export type ReagentId = ProtoId<'reagent'>;
 export type StackId = ProtoId<'stack'>;
+export type VendingMachineInventoryId = ProtoId<'vendingMachineInventory'>;
 // We don't collect a map of tags, but this is till handy for disambiguation.
 export type TagId = ProtoId<'tag'>;
 
@@ -34,6 +35,10 @@ export type MetamorphRecipeMap = ReadonlyMap<
 >;
 export type ReagentMap = ReadonlyMap<ReagentId, ReagentPrototype>;
 export type StackMap = ReadonlyMap<StackId, StackPrototype>;
+export type VendingMachineInventoryMap = ReadonlyMap<
+  VendingMachineInventoryId,
+  VendingMachineInventoryPrototype
+>;
 
 export type RelevantPrototype =
   | ConstructionGraphPrototype
@@ -45,6 +50,7 @@ export type RelevantPrototype =
   | ReactionPrototype
   | ReagentPrototype
   | StackPrototype
+  | VendingMachineInventoryPrototype
   ;
 
 export interface EntityPrototype extends PlainObject {
@@ -140,6 +146,14 @@ export interface StackPrototype {
   readonly type: 'stack';
   readonly id: StackId;
   readonly spawn: EntityId;
+}
+
+export interface VendingMachineInventoryPrototype extends PlainObject {
+  readonly type: 'vendingMachineInventory';
+  readonly id: VendingMachineInventoryId;
+  readonly startingInventory?: Readonly<Record<EntityId, number>>;
+  readonly contrabandInventory?: Readonly<Record<EntityId, number>>;
+  readonly emaggedInventory?: Readonly<Record<EntityId, number>>;
 }
 
 export interface ConstructionGraphPrototype {
@@ -250,6 +264,7 @@ const RelevantPrototypeTypes: ReadonlySet<string> = new Set([
   'reaction',
   'reagent',
   'stack',
+  'vendingMachineInventory',
 ]);
 
 /**

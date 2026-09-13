@@ -64,6 +64,7 @@ export const saveData = async (
         name: entity.name,
         sprite: d.sprites.points.get(id)!,
         traits: getSpecialsMask(entity, d.specials),
+        sources: d.resolved.entitySources.get(id) ?? undefined,
         ...getFoodSequenceData(entity, d.foodSequenceStartPoints),
       });
     }

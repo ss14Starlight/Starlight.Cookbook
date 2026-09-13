@@ -25,6 +25,9 @@ import {
   StackId,
   StackMap,
   StackPrototype,
+  VendingMachineInventoryId,
+  VendingMachineInventoryMap,
+  VendingMachineInventoryPrototype,
   isRelevantPrototype,
 } from './prototypes';
 
@@ -32,6 +35,7 @@ export interface RawGameData {
   readonly entities: EntityMap;
   readonly reagents: ReagentMap;
   readonly stacks: StackMap;
+  readonly vendingMachineInventories: VendingMachineInventoryMap;
   readonly constructionGraphs: ConstructionGraphMap;
   readonly metamorphRecipes: MetamorphRecipeMap;
   readonly foodSequenceElements: FoodSequenceElementMap;
@@ -80,6 +84,10 @@ export const readRawGameData = (yamlPaths: string[]): RawGameData => {
   const entities = new Map<EntityId, EntityPrototype>();
   const reagents = new Map<ReagentId, ReagentPrototype>();
   const stacks = new Map<StackId, StackPrototype>();
+  const vendingMachineInventories = new Map<
+    VendingMachineInventoryId,
+    VendingMachineInventoryPrototype
+  >();
   const constructionGraphs = new Map<ConstructionGraphId, ConstructionGraphPrototype>();
   const metamorphRecipes = new Map<MetamorphRecipeId, MetamorphRecipePrototype>();
   const foodSequenceElements = new Map<FoodSequenceElementId, FoodSequenceElementPrototype>();
@@ -124,6 +132,9 @@ export const readRawGameData = (yamlPaths: string[]): RawGameData => {
         case 'stack':
           stacks.set(node.id, node);
           break;
+        case 'vendingMachineInventory':
+          vendingMachineInventories.set(node.id, node);
+          break;
         case 'constructionGraph':
           constructionGraphs.set(node.id, node);
           break;
@@ -149,6 +160,7 @@ export const readRawGameData = (yamlPaths: string[]): RawGameData => {
     // read fields like `group` and `color` directly.
     reagents: flattenInheritance(reagents, 'Reagent'),
     stacks,
+    vendingMachineInventories,
     constructionGraphs,
     metamorphRecipes,
     foodSequenceElements,

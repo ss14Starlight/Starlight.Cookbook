@@ -3,6 +3,7 @@ import {
   ConstructVerb,
   ReagentIngredient,
   ReagentSourceMethod,
+  VendingStock,
   Recipe,
 } from '../types';
 import { EntitySpawnEntry, Solution } from './components';
@@ -12,6 +13,7 @@ import {
   FoodSequenceElementId,
   ReagentId,
   TagId,
+  VendingMachineInventoryId,
 } from './prototypes';
 
 export type MethodEntities = Readonly<Record<Recipe['method'], EntityId | null>>;
@@ -141,6 +143,8 @@ export interface ResolvedEntity {
    * stomach can digest.
    */
   readonly stomach: ResolvedStomach | null;
+  /** The inventory pack used by this vending machine, if any. */
+  readonly vendingMachineInventory: VendingMachineInventoryId | null;
   /** Set of all tags attached to this prototype. */
   readonly tags: ReadonlySet<TagId>;
   /** Set of component names present on this prototype. */
@@ -259,6 +263,13 @@ export interface ResolvedFoodSequenceElement {
 export interface ResolvedReagentSource {
   readonly entity: EntityId;
   readonly method?: ReagentSourceMethod;
+}
+
+/** Generator-side entity source, before entity IDs become plain strings. */
+export interface ResolvedEntitySource {
+  readonly type: 'vending';
+  readonly vendor: EntityId;
+  readonly stock: VendingStock;
 }
 
 export type ResolvedReagentMap = ReadonlyMap<ReagentId, ResolvedReagent>;

@@ -16,6 +16,7 @@ import {
   SpriteComponent,
   StomachComponent,
   ToolRefinableComponent,
+  VendingMachineComponent,
 } from './components';
 import {
   DefaultButcheringType,
@@ -94,6 +95,7 @@ const InitialState: ResolvedEntity = {
   construction: null,
   deepFryOutput: null,
   stomach: null,
+  vendingMachineInventory: null,
   tags: new Set(),
   components: new Set(),
 };
@@ -164,11 +166,23 @@ const beginResolveEntity = (
         case 'ToolRefinable':
           resolveToolRefinable(draft, comp);
           break;
+        case 'VendingMachine':
+          resolveVendingMachine(draft, comp);
+          break;
       }
     }
   }
 
   return draft;
+};
+
+const resolveVendingMachine = (
+  draft: Draft<ResolvedEntity>,
+  comp: VendingMachineComponent
+): void => {
+  if (comp.pack != null) {
+    draft.vendingMachineInventory = comp.pack as ResolvedEntity['vendingMachineInventory'];
+  }
 };
 
 const resolveButcherable = (

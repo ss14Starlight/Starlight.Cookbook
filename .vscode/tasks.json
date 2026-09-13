@@ -1,0 +1,65 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Cookbook: Watch",
+      "type": "npm",
+      "script": "watch",
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "typescript",
+        "pattern": {
+          "regexp": "^(.*):(\\d+):(\\d+):\\s+(error|warning)\\s+(TS\\d+):\\s+(.*)$",
+          "file": 1,
+          "line": 2,
+          "column": 3,
+          "severity": 4,
+          "code": 5,
+          "message": 6
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^.*bundles .*",
+          "endsPattern": "^.*waiting for changes\\.\\.\\.$"
+        }
+      },
+      "presentation": {
+        "group": "cookbook-dev",
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "Cookbook: Serve",
+      "type": "npm",
+      "script": "start",
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "cookbook-server",
+        "pattern": {
+          "regexp": "^(?!)$",
+          "message": 1
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^Starting up http-server",
+          "endsPattern": "^Hit CTRL-C to stop the server"
+        }
+      },
+      "presentation": {
+        "group": "cookbook-dev",
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "Cookbook: Start development server",
+      "dependsOn": [
+        "Cookbook: Watch",
+        "Cookbook: Serve"
+      ],
+      "dependsOrder": "parallel",
+      "problemMatcher": []
+    }
+  ]
+}

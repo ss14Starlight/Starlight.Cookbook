@@ -48,6 +48,8 @@ export interface Entity {
   readonly name: string;
   readonly sprite: SpritePoint;
   readonly traits: number;
+  /** Non-recipe ways this entity can be obtained. */
+  readonly sources?: readonly EntitySource[];
   /**
    * If present, contains the food sequence this entity is the start point of.
    */
@@ -66,6 +68,15 @@ export interface Entity {
    */
   readonly seqEnd?: readonly string[];
 }
+
+/** An entity that can be obtained from a vending machine. */
+export interface EntitySource {
+  readonly type: 'vending';
+  readonly vendor: string;
+  readonly stock: VendingStock;
+}
+
+export type VendingStock = 'starting' | 'contraband' | 'emagged';
 
 export interface FoodSeqStart {
   readonly key: string;

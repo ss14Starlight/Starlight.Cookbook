@@ -1,4 +1,8 @@
-import { OneOrMoreEntities, ReagentSourceMethod } from '../types';
+import {
+  OneOrMoreEntities,
+  ReagentSourceMethod,
+  VendingStock,
+} from '../types';
 import { EntitySpawnEntry, Solution } from './components';
 import {
   DefaultDeepFryCookTime,
@@ -24,6 +28,7 @@ import {
   StackId,
   StackMap,
   TagId,
+  VendingMachineInventoryMap,
 } from './prototypes';
 import { getReagentResult, getSolidResult } from './reaction-helpers';
 import { RawGameData } from './read-raw';
@@ -32,6 +37,7 @@ import {
   ResolvedConstruction,
   ResolvedConstructionRecipe,
   ResolvedEntity,
+  ResolvedEntitySource,
   ResolvedEntityMap,
   ResolvedReagentSource,
   ResolvedSpecialRecipe,
@@ -44,6 +50,7 @@ export interface PrunedGameData {
   readonly reactions: readonly ReactionPrototype[];
   readonly specialRecipes: ReadonlyMap<string, ResolvedSpecialRecipe>;
   readonly reagentSources: ReadonlyMap<ReagentId, readonly ResolvedReagentSource[]>;
+  readonly entitySources: ReadonlyMap<EntityId, readonly ResolvedEntitySource[]>;
   readonly foodSequenceStartPoints: ReadonlyMap<TagId, readonly EntityId[]>;
   readonly foodSequenceElements: ReadonlyMap<TagId, readonly EntityId[]>;
   readonly foodSequenceEndPoints: ReadonlyMap<TagId, readonly EntityId[]>;
@@ -151,6 +158,14 @@ export const filterRelevantPrototypes = (
     params.forceIncludeReagentSources
   );
 
+  // Vending stock is another way to obtain ingredients that have no recipe.
+  // Keep it as source metadata rather than inventing fake cooking recipes.
+  const entitySources = collectVendingSources(
+    raw.vendingMachineInventories,
+    allEntities,
+    usedEntities
+  );
+
   // We know the total set of relevant entities now, so we'll use that
   // to collect food sequence information, i.e. what can be put inside
   // which food sequence start point.
@@ -187,10 +202,66 @@ export const filterRelevantPrototypes = (
     reactions: Array.from(reactions.values()),
     specialRecipes,
     reagentSources,
+    entitySources,
     foodSequenceStartPoints: foodSequences.startPoints,
     foodSequenceElements: foodSequences.elements,
     foodSequenceEndPoints: foodSequences.endPoints,
   };
+};
+
+const collectVendingSources = (
+  inventories: VendingMachineInventoryMap,
+  allEntities: ResolvedEntityMap,
+  usedEntities: Set<EntityId>
+): Map<EntityId, ResolvedEntitySource[]> => {
+  const result = new Map<EntityId, ResolvedEntitySource[]>();
+  const relevantItems = new Set(usedEntities);
+  const sourceVendors = new Set<EntityId>();
+
+  const addStock = (
+    vendor: EntityId,
+    stock: VendingStock,
+    entries: Readonly<Record<EntityId, number>> | undefined
+  ): void => {
+    for (const item of Object.keys(entries ?? {}) as EntityId[]) {
+      if (!relevantItems.has(item)) {
+        continue;
+      }
+
+      let sources = result.get(item);
+      if (!sources) {
+        sources = [];
+        result.set(item, sources);
+      }
+      if (!sources.some(s => s.vendor === vendor && s.stock === stock)) {
+        sources.push({ type: 'vending', vendor, stock });
+      }
+      sourceVendors.add(vendor);
+    }
+  };
+
+  for (const vendor of allEntities.values()) {
+    if (
+      vendor.abstract ||
+      vendor.components.has('EmptyVendingMachine') ||
+      !vendor.vendingMachineInventory
+    ) {
+      continue;
+    }
+    const inventory = inventories.get(vendor.vendingMachineInventory);
+    if (!inventory) {
+      continue;
+    }
+
+    addStock(vendor.id, 'starting', inventory.startingInventory);
+    addStock(vendor.id, 'contraband', inventory.contrabandInventory);
+    addStock(vendor.id, 'emagged', inventory.emaggedInventory);
+  }
+
+  for (const vendor of sourceVendors) {
+    usedEntities.add(vendor);
+  }
+  return result;
 };
 
 const collectMicrowaveRecipes = (

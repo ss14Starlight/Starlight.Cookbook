@@ -55,6 +55,17 @@ export const Recipe = memo(({
     headerAction ??
     (!skipDefaultHeaderAction && defaultHeaderAction(recipe, entityMap));
 
+  // Reagents for bowl-based meals need to be put in the bowl rather than
+  // treated as unrelated ingredients. Make that relationship explicit in the
+  // ingredient list. FoodBowlBig is the shared prototype used for the empty
+  // cooking bowl across supported forks.
+  const reagentContainerName =
+    recipe.method === 'microwave' &&
+    Object.keys(recipe.reagents).length > 0 &&
+    recipe.solids.FoodBowlBig
+      ? entityMap.get('FoodBowlBig')?.name
+      : undefined;
+
   // This is a bit ugly. In order to keep the title *text* visually centered,
   // we insert a spacer as necessary. By design, the recipe icon is exactly
   // the same size as the favourite and explore buttons, and we assume that
@@ -110,6 +121,7 @@ export const Recipe = memo(({
           visible={visible}
           solids={recipe.solids}
           reagents={recipe.reagents}
+          reagentContainerName={reagentContainerName}
         />
       )}
       <RecipeMethod recipe={recipe}/>

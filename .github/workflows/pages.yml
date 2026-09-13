@@ -1,0 +1,89 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+  id-token: write
+  pages: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout cookbook
+        uses: actions/checkout@v6
+        with:
+          path: starlight-cookbook
+
+      # sources.yml expects this repository alongside the cookbook checkout.
+      - name: Checkout Starlight
+        uses: actions/checkout@v6
+        with:
+          repository: ss14Starlight/space-station-14
+          path: space-station-14
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: starlight-cookbook/package-lock.json
+
+      - name: Install dependencies
+        working-directory: starlight-cookbook
+        run: npm ci
+
+      - name: Configure GitHub Pages
+        id: pages
+        uses: actions/configure-pages@v5
+
+      # The regular build script loads the local, ignored .env file. Pages
+      # supplies the correct URL and base path directly to Rollup instead.
+      - name: Build website
+        working-directory: starlight-cookbook
+        env:
+          NODE_ENV: production
+          COOKBOOK_BASE_PATH: ${{ steps.pages.outputs.base_path }}
+          COOKBOOK_REPO_URL: ${{ github.server_url }}/${{ github.repository }}
+          COOKBOOK_CANONICAL_URL: ${{ steps.pages.outputs.base_url }}
+        run: npx --no-install rollup -c
+
+      - name: Generate Starlight recipe data
+        working-directory: starlight-cookbook
+        run: node ./bin/recipe-gen.js sources.yml
+
+      # GitHub Pages has no rewrite rules. Serving the app shell as the custom
+      # 404 page lets React Router handle direct links such as /menu.
+      - name: Prepare static site
+        working-directory: starlight-cookbook
+        run: |
+          cp public/index.html public/404.html
+          touch public/.nojekyll
+
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: starlight-cookbook/public
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

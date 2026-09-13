@@ -47,7 +47,7 @@ const plugins = [
     rootDir: `./src`,
     noEmitOnError: false,
     declaration: false,
-    sourceMap: false,
+    sourceMap: isDev,
   }),
 
   // Rollup only resolves ES2015 modules by default, so make it work with
@@ -137,7 +137,7 @@ export default [
     output: {
       format: 'iife',
       exports: 'none',
-      sourcemap: false,
+      sourcemap: isDev ? 'inline' : false,
       dir: './public',
       entryFileNames: `assets/index.${isDev ? 'dev' : '[hash:6]'}.js`,
     },
@@ -192,7 +192,7 @@ export default [
     output: {
       format: 'cjs',
       exports: 'none',
-      sourcemap: false,
+      sourcemap: isDev ? 'inline' : false,
       file: './bin/recipe-gen.js',
     },
     plugins,

@@ -4,48 +4,68 @@ import { useGameData } from '../context';
 import { EntitySprite, ReagentSprite } from '../sprites';
 import { Tooltip } from '../tooltip';
 import { RecipePopup } from './popup';
+import { EntitySourcePopup } from './entity-source-popup';
 import { ReagentSourcePopup } from './reagent-source-popup';
 
 export interface RecipeIngredientsProps {
   visible: boolean;
   solids: Readonly<Record<string, number>>;
   reagents: Readonly<Record<string, ReagentIngredientData>>;
+  /** If set, tells the user that the listed reagents go in this container. */
+  reagentContainerName?: string;
 }
 
 const IngredientSpriteHeight = 32;
+const ReagentContainerInstructionHeight = 24;
 
 export const RecipeIngredients = memo(({
   visible,
   solids,
   reagents,
+  reagentContainerName,
 }: RecipeIngredientsProps): ReactElement => {
   if (!visible) {
     const ingredientCount =
       Object.keys(solids).length +
       Object.keys(reagents).length;
+    const instructionHeight = reagentContainerName
+      ? ReagentContainerInstructionHeight
+      : 0;
     return (
       <div
         className='recipe_ingredients'
         style={{
-          height: `${ingredientCount * IngredientSpriteHeight}px`,
+          height: `${
+            ingredientCount * IngredientSpriteHeight + instructionHeight
+          }px`,
         }}
       />
     );
   }
+
+  const reagentIngredients = Object.entries(reagents)
+    .map(([reagentId, ingredient]) =>
+      <ReagentIngredient
+        key={reagentId}
+        id={reagentId}
+        amount={ingredient.amount}
+        catalyst={ingredient.catalyst}
+      />
+    );
 
   return (
     <div className='recipe_ingredients'>
       {Object.entries(solids).map(([entId, qty]) =>
         <SolidIngredient key={entId} id={entId} qty={qty}/>
       )}
-      {Object.entries(reagents).map(([reagentId, ingredient]) =>
-        <ReagentIngredient
-          key={reagentId}
-          id={reagentId}
-          amount={ingredient.amount}
-          catalyst={ingredient.catalyst}
-        />
-      )}
+      {reagentContainerName ? (
+        <div className='recipe_reagent-group'>
+          <span className='recipe_reagent-instruction'>
+            Put these in the {reagentContainerName}:
+          </span>
+          {reagentIngredients}
+        </div>
+      ) : reagentIngredients}
     </div>
   );
 });
@@ -74,6 +94,12 @@ export const SolidIngredient = ({
               {entity.name}
             </span>
           </RecipePopup>
+        ) : entity.sources && entity.sources.length > 0 ? (
+          <EntitySourcePopup sources={entity.sources}>
+            <span className='more-info'>
+              {entity.name}
+            </span>
+          </EntitySourcePopup>
         ) : entity.name}
       </span>
     </span>

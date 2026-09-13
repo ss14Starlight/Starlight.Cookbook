@@ -1,0 +1,14 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Cookbook: Run and Debug",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:5514",
+      "webRoot": "${workspaceFolder}",
+      "preLaunchTask": "Cookbook: Start development server",
+      "sourceMaps": true
+    }
+  ]
+}

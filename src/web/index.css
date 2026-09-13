@@ -917,6 +917,20 @@ select {
     align-self: center;
   }
 
+    .recipe_reagent-group {
+      margin-top: 4px;
+      padding-left: 6px;
+      border-left: 2px solid var(--fg-subtle);
+    }
+
+      .recipe_reagent-instruction {
+        display: block;
+        height: 20px;
+        color: var(--fg-subtle);
+        font-size: 0.85rem;
+        line-height: 20px;
+      }
+
     .recipe_ingredient {
       display: flex;
       flex-direction: row;
@@ -2237,7 +2251,8 @@ select {
       max-width: none;
     }
 
-  .popup_reagent-source {
+  .popup_reagent-source,
+  .popup_entity-source {
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -2249,13 +2264,15 @@ select {
     box-shadow: 0 3px 7px var(--shadow-color);
   }
 
-    .reagent-source {
+    .reagent-source,
+    .entity-source {
       display: flex;
       flex-direction: column;
       gap: 2px;
     }
 
-      .reagent-source_verb {
+      .reagent-source_verb,
+      .entity-source_verb {
         font-weight: 500;
       }
 

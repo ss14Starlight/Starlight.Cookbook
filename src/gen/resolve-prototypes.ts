@@ -22,6 +22,7 @@ import {
   MethodEntities,
   MicrowaveRecipeTypes,
   ResolvedEntity,
+  ResolvedEntitySource,
   ResolvedEntityMap,
   ResolvedReagent,
   ResolvedReagentMap,
@@ -34,6 +35,7 @@ export interface ResolvedGameData {
   readonly reagents: ResolvedReagentMap;
   readonly recipes: ReadonlyMap<string, ResolvedRecipe>;
   readonly reagentSources: ReadonlyMap<ReagentId, readonly ResolvedReagentSource[]>;
+  readonly entitySources: ReadonlyMap<EntityId, readonly ResolvedEntitySource[]>;
   readonly methodEntities: ReadonlyMap<CookingMethod, ResolvedEntity>;
   /** Frontier */
   readonly microwaveRecipeTypeEntities: ReadonlyMap<string, ResolvedEntity> | undefined;
@@ -119,6 +121,7 @@ export const resolvePrototypes = (
     reagents,
     recipes,
     reagentSources: filtered.reagentSources,
+    entitySources: filtered.entitySources,
     methodEntities: resolvedMethodEntities,
     microwaveRecipeTypeEntities,
   };
