@@ -116,6 +116,11 @@ export const App = ({ forks }: Props): ReactElement => {
               GitHub: <a href='https://github.com/arimah' target='_blank' rel='noopener'>arimah</a>.
             </p>
             <p>
+              This is a fork of the above project for Starlight.
+              {' '}
+              GitHub: <a href='https://github.com/ss14Starlight' target='_blank' rel='noopener'>Starlight</a>.
+            </p>
+            <p>
               {'Sprites were made by many contributors: '}
               <AttributionsLink value={data.attributions} meta={meta}/>
               {'.'}
