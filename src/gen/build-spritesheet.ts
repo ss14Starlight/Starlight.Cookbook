@@ -189,6 +189,17 @@ const toDrawableSprite = (
     ? cssColorToHex(sprite.color)
     : ColorWhite;
 
+  if (sprite.icon) {
+    return {
+      offset: spriteOffsets.get(entity.id) ?? ZeroOffset,
+      layers: [{
+        path: sprite.icon.path,
+        state: sprite.icon.state,
+        color: ColorWhite,
+      }],
+    };
+  }
+
   const layers: DrawableLayer[] = [];
 
   for (let i = 0; i < sprite.layers.length; i++) {

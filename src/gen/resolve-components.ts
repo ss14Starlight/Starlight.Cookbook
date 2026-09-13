@@ -7,6 +7,7 @@ import {
   ExtractableComponent,
   FoodSequenceElementComponent,
   FoodSequenceStartPointComponent,
+  IconComponent,
   SliceableFoodComponent,
   Solution,
   SolutionComponent,
@@ -82,6 +83,7 @@ const InitialState: ResolvedEntity = {
     state: null,
     color: null,
     layers: [],
+    icon: null,
   },
   solutions: null,
   reagents: new Set(),
@@ -137,6 +139,9 @@ const beginResolveEntity = (
           break;
         case 'FoodSequenceStartPoint':
           resolveFoodSequenceStartPoint(draft, comp);
+          break;
+        case 'Icon':
+          resolveIcon(draft, comp);
           break;
         case 'Produce':
           draft.isProduce = true;
@@ -381,6 +386,20 @@ const resolveSolutions = (
   }
 };
 
+const resolveIcon = (
+  draft: Draft<ResolvedEntity>,
+  comp: IconComponent
+): void => {
+  if (comp.sprite == null || comp.state == null) {
+    return;
+  }
+
+  draft.sprite.icon = {
+    path: comp.sprite,
+    state: comp.state,
+  };
+};
+
 const resolveSprite = (
   draft: Draft<ResolvedEntity>,
   comp: SpriteComponent
@@ -391,6 +410,7 @@ const resolveSprite = (
       state: null,
       color: null,
       layers: [],
+      icon: null,
     };
   }
 

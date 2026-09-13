@@ -32,6 +32,7 @@ jobs:
         with:
           repository: ss14Starlight/space-station-14
           path: space-station-14
+          ref: Starlight
 
       - name: Set up Node.js
         uses: actions/setup-node@v6

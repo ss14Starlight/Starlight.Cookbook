@@ -156,6 +156,13 @@ export interface ResolvedSprite {
   readonly state: string | null;
   readonly color: string | null;
   readonly layers: readonly ResolvedSpriteLayer[];
+  /** From `IconComponent`; takes precedence over everything above. */
+  readonly icon: ResolvedIcon | null;
+}
+
+export interface ResolvedIcon {
+  readonly path: string;
+  readonly state: string;
 }
 
 export interface ResolvedSpriteLayer {

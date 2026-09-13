@@ -21,6 +21,7 @@ export type Component =
   | ExtractableComponent
   | FoodSequenceElementComponent
   | FoodSequenceStartPointComponent
+  | IconComponent
   | ProduceComponent
   | SliceableFoodComponent
   | SolutionComponent
@@ -132,6 +133,12 @@ export interface Solution {
 export interface SolutionReagent {
   readonly ReagentId: ReagentId;
   readonly Quantity: number;
+}
+
+export interface IconComponent {
+  readonly type: 'Icon';
+  readonly sprite: string;
+  readonly state: string;
 }
 
 export interface SpriteComponent {
