@@ -25,6 +25,7 @@ import {
   ResolvedEntityMap,
   ResolvedReagent,
   ResolvedReagentMap,
+  ResolvedReagentSource,
   ResolvedRecipe,
 } from './types';
 
@@ -32,7 +33,7 @@ export interface ResolvedGameData {
   readonly entities: ResolvedEntityMap;
   readonly reagents: ResolvedReagentMap;
   readonly recipes: ReadonlyMap<string, ResolvedRecipe>;
-  readonly reagentSources: ReadonlyMap<ReagentId, readonly EntityId[]>;
+  readonly reagentSources: ReadonlyMap<ReagentId, readonly ResolvedReagentSource[]>;
   readonly methodEntities: ReadonlyMap<CookingMethod, ResolvedEntity>;
   /** Frontier */
   readonly microwaveRecipeTypeEntities: ReadonlyMap<string, ResolvedEntity> | undefined;

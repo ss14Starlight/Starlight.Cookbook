@@ -42,6 +42,18 @@ export const resolveSpecials = (
     if (!digestibleTags || !digestibleComps) {
       throw new Error(`Organ ${diet.organ} has no tags or components to filter by`);
     }
+    // A non-exclusive whitelist *adds* to an ordinary diet rather than
+    // replacing it, so the species can eat everything a human can. Treating
+    // one as a special diet would produce a filter claiming, say, that vox eat
+    // nothing but trash.
+    if (!stomach.exclusive) {
+      throw new Error(
+        `Organ ${
+          diet.organ
+        } has a non-exclusive whitelist (isSpecialDigestibleExclusive: false), ` +
+        `so it is not a dietary restriction and cannot be used as a special diet`
+      );
+    }
     const excludeReagents =
       diet.excludeFoodsWith &&
       new Set(diet.excludeFoodsWith);

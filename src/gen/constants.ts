@@ -9,7 +9,14 @@ export const DefaultCookTime = 5;
 
 /**
  * MUST MIRROR C#! This matches the default value of the field
- * `MicrowaveMealRecipePrototype.Group`.
+ * `DeepFryingRecipePrototype.CookTime`. Starlight.
+ */
+export const DefaultDeepFryCookTime = 5;
+
+/**
+ * MUST MIRROR C#! This matches the default value of the fields
+ * `MicrowaveMealRecipePrototype.Group` and `DeepFryingRecipePrototype.Group`,
+ * which happen to agree.
  */
 export const DefaultRecipeGroup = 'Other';
 

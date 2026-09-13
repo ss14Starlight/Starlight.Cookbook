@@ -2,6 +2,7 @@ import {
   ConstructionStep,
   ConstructVerb,
   ReagentIngredient,
+  ReagentSourceMethod,
   Recipe,
 } from '../types';
 import { EntitySpawnEntry, Solution } from './components';
@@ -236,6 +237,12 @@ export interface ResolvedConstruction {
 export interface ResolvedStomach {
   readonly tags: readonly TagId[] | null;
   readonly components: readonly string[] | null;
+  /**
+   * True if the whitelist is the *only* thing this stomach can digest. False
+   * means it eats ordinary food as well, so it isn't a special diet and can't
+   * be used as one.
+   */
+  readonly exclusive: boolean;
 }
 
 export interface ResolvedFoodSequenceStart {
@@ -246,6 +253,12 @@ export interface ResolvedFoodSequenceStart {
 export interface ResolvedFoodSequenceElement {
   readonly element: FoodSequenceElementId;
   readonly final: boolean;
+}
+
+/** Generator-side {@link ReagentSource}, before entity IDs become plain strings. */
+export interface ResolvedReagentSource {
+  readonly entity: EntityId;
+  readonly method?: ReagentSourceMethod;
 }
 
 export type ResolvedReagentMap = ReadonlyMap<ReagentId, ResolvedReagent>;
@@ -299,11 +312,16 @@ export type ResolvedSpecialRecipe =
   | ResolvedConstructionRecipe
   ;
 
-/** Frontier: Deep-frying recipes */
+/** Frontier and Starlight: Deep-frying recipes */
 export interface ResolvedDeepFryRecipe extends ResolvedRecipeBase {
   readonly method: 'deepFry';
   readonly solidResult: EntityId;
   readonly reagentResult: null;
+  /**
+   * Cook time, in seconds. Starlight only: Frontier's fryer takes its time
+   * from the machine, not the recipe, so this is absent there.
+   */
+  readonly time?: number;
 }
 
 export interface ResolvedConstructionRecipe extends ResolvedRecipeBase {

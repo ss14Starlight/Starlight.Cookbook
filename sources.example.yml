@@ -44,10 +44,10 @@ mystation:
     stir: Spoon
     shake: DrinkShaker
     construct: ClothingHeadHatChef # general recipes
-    # FRONTIER-SPECIFIC.
-    # This cooking method is unique to Frontier and should be `null` unless
-    # the fork has explicitly and specifically ported Frontier's deep frying.
-    # When `null`, the deep fry method is not shown in the UI.
+    # Deep frying, supported in two flavours: Frontier's `DeepFrySpawn`
+    # component, and the `deepFryingRecipe` prototype that Starlight took from
+    # Trieste Port 14. Set this to `null` on forks that have neither, or the
+    # deep fry method is shown in the UI without any recipes behind it.
     deepFry: null
   # The sprite state that is used to fill beakers, for reagent ingredients.
   # This state must be in the same RSI as the main sprite of whatever entity

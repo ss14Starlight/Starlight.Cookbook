@@ -6,10 +6,13 @@ import replace from '@rollup/plugin-replace';
 import terser from '@rollup/plugin-terser';
 import typescript from '@rollup/plugin-typescript';
 import fs, { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import postcssNested from 'postcss-nested';
 import postcss from 'rollup-plugin-postcss';
 
-const dir = import.meta.dirname;
+// `import.meta.dirname` is only available on Node 20.11+.
+const dir = path.dirname(fileURLToPath(import.meta.url));
 const pkg = JSON.parse(fs.readFileSync(`${dir}/package.json`, {
   encoding: 'utf-8',
 }));

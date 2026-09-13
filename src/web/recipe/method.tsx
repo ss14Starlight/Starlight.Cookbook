@@ -83,8 +83,12 @@ export const RecipeMethod = memo(({
           return null;
       }
       break;
-    case 'deepFry': // Frontier
-      text = <span>Deep fry</span>;
+    case 'deepFry': // Frontier, Starlight
+      text = <>
+        <span>Deep fry</span>
+        {/* Starlight's recipes carry a cook time; Frontier's don't. */}
+        {recipe.time != null ? <span>{recipe.time} sec</span> : null}
+      </>;
       spriteAlt = 'deep fry';
       break;
   }

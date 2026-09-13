@@ -2237,6 +2237,28 @@ select {
       max-width: none;
     }
 
+  .popup_reagent-source {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px 12px;
+    max-width: 300px;
+    border-radius: 7px;
+    background-color: var(--tooltip-bg);
+    color: var(--tooltip-fg);
+    box-shadow: 0 3px 7px var(--shadow-color);
+  }
+
+    .reagent-source {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+      .reagent-source_verb {
+        font-weight: 500;
+      }
+
   .popup_foodseq {
     padding: 8px 12px;
     max-width: 300px;

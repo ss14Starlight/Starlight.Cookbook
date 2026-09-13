@@ -4,6 +4,7 @@ import { useGameData } from '../context';
 import { EntitySprite, ReagentSprite } from '../sprites';
 import { Tooltip } from '../tooltip';
 import { RecipePopup } from './popup';
+import { ReagentSourcePopup } from './reagent-source-popup';
 
 export interface RecipeIngredientsProps {
   visible: boolean;
@@ -104,12 +105,23 @@ export const ReagentIngredient = ({
       <ReagentSprite id={id}/>
       <span>
         {formattedAmount}
+        {/*
+          * A reagent you react into something has recipes; one you extract
+          * from an entity has sources. Reactions win where a reagent has
+          * both, since the recipe already names the entity it comes from.
+          */}
         {relatedRecipes ? (
           <RecipePopup id={relatedRecipes}>
             <span className='more-info'>
               {reagent.name}
             </span>
           </RecipePopup>
+        ) : reagent.sources.length > 0 ? (
+          <ReagentSourcePopup sources={reagent.sources}>
+            <span className='more-info'>
+              {reagent.name}
+            </span>
+          </ReagentSourcePopup>
         ) : reagent.name}
         {catalyst && <>
           {' '}

@@ -6,6 +6,7 @@ import {
   ConstructionGraphId,
   ConstructionGraphMap,
   ConstructionGraphPrototype,
+  DeepFryingRecipe,
   EntityId,
   EntityMap,
   EntityPrototype,
@@ -35,6 +36,8 @@ export interface RawGameData {
   readonly metamorphRecipes: MetamorphRecipeMap;
   readonly foodSequenceElements: FoodSequenceElementMap;
   readonly recipes: readonly MicrowaveMealRecipe[];
+  /** Starlight */
+  readonly deepFryingRecipes: readonly DeepFryingRecipe[];
   readonly reactions: readonly ReactionPrototype[];
 }
 
@@ -81,6 +84,7 @@ export const readRawGameData = (yamlPaths: string[]): RawGameData => {
   const metamorphRecipes = new Map<MetamorphRecipeId, MetamorphRecipePrototype>();
   const foodSequenceElements = new Map<FoodSequenceElementId, FoodSequenceElementPrototype>();
   const recipes: MicrowaveMealRecipe[] = [];
+  const deepFryingRecipes: DeepFryingRecipe[] = [];
   const reactions: ReactionPrototype[] = [];
 
   for (const path of yamlPaths) {
@@ -129,6 +133,9 @@ export const readRawGameData = (yamlPaths: string[]): RawGameData => {
         case 'microwaveMealRecipe':
           recipes.push(node);
           break;
+        case 'deepFryingRecipe':
+          deepFryingRecipes.push(node);
+          break;
         case 'reaction':
           reactions.push(node);
           break;
@@ -146,6 +153,7 @@ export const readRawGameData = (yamlPaths: string[]): RawGameData => {
     metamorphRecipes,
     foodSequenceElements,
     recipes,
+    deepFryingRecipes,
     reactions,
   };
 };

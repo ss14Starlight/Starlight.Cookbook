@@ -76,8 +76,26 @@ export interface Reagent {
   readonly id: string;
   readonly name: string;
   readonly color: string;
-  readonly sources: readonly string[];
+  readonly sources: readonly ReagentSource[];
 }
+
+/**
+ * An entity a reagent can be *extracted* from, rather than reacted into: you
+ * get cinnamon by grinding a cinnamon stick. These are deliberately not
+ * recipes -- they'd flood the recipe list with one-ingredient entries -- so
+ * they're shown only when hovering over the reagent.
+ */
+export interface ReagentSource {
+  readonly entity: string;
+  /**
+   * How to get the reagent out. Absent for sources configured through the
+   * fork's `forceIncludeReagentSources`, which names the entity but not the
+   * method.
+   */
+  readonly method?: ReagentSourceMethod;
+}
+
+export type ReagentSourceMethod = 'grind' | 'juice';
 
 export type CookingMethod =
   | 'microwave'
@@ -257,11 +275,16 @@ export interface AlsoMakesStep {
 
 export type OneOrMoreEntities = string | readonly string[];
 
-/** Frontier: Deep-frying recipes */
+/** Frontier and Starlight: Deep-frying recipes */
 export interface DeepFryRecipe extends RecipeBase {
   readonly method: 'deepFry';
   readonly solidResult: string;
   readonly reagentResult: null;
+  /**
+   * Cook time, in seconds. Starlight only: Frontier's fryer takes its time
+   * from the machine, not the recipe, so this is absent there.
+   */
+  readonly time?: number;
 }
 
 export interface ReagentIngredient {

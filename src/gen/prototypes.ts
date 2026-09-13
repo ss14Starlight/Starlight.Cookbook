@@ -8,6 +8,7 @@ export type ProtoId<T extends string> = string & {
 };
 
 export type ConstructionGraphId = ProtoId<'constructionGraph'>;
+export type DeepFryingRecipeId = ProtoId<'deepFryingRecipe'>;
 export type EntityId = ProtoId<'entity'>;
 export type FoodSequenceElementId = ProtoId<'foodSequenceElement'>;
 export type MetamorphRecipeId = ProtoId<'metamorphRecipe'>;
@@ -36,6 +37,7 @@ export type StackMap = ReadonlyMap<StackId, StackPrototype>;
 
 export type RelevantPrototype =
   | ConstructionGraphPrototype
+  | DeepFryingRecipe
   | EntityPrototype
   | FoodSequenceElementPrototype
   | MetamorphRecipePrototype
@@ -87,6 +89,25 @@ export interface MicrowaveMealRecipe extends PlainObject {
   readonly resultCount?: number;
 }
 
+/**
+ * Starlight, by way of Trieste Port 14. Frontier hangs deep frying off the
+ * *ingredient*, through `DeepFrySpawn`; here it is a prototype of its own,
+ * with exactly one solid ingredient and no reagents.
+ *
+ * The fryer matches `ingredient` against the inserted entity's prototype ID,
+ * with no inheritance and no whitelist, so the recipe applies to that one
+ * prototype and nothing else.
+ */
+export interface DeepFryingRecipe extends PlainObject {
+  readonly type: 'deepFryingRecipe';
+  readonly id: DeepFryingRecipeId;
+  readonly name: string;
+  readonly result: EntityId;
+  readonly ingredient: EntityId;
+  readonly time?: number;
+  readonly group?: string;
+}
+
 export interface ReactionPrototype extends PlainObject {
   readonly type: 'reaction';
   readonly id: ReactionId;
@@ -135,7 +156,9 @@ export interface ConstructionGraphNode {
 
 export interface ConstructionGraphEdge {
   readonly to: string;
-  readonly steps: ConstructionGraphStep[];
+  // The DataField is not marked as required, and Starlight's `BarWindow` graph
+  // does in fact have a step-less edge.
+  readonly steps?: ConstructionGraphStep[];
   /** Need to verify that it is empty. */
   readonly conditions?: readonly unknown[];
 }
@@ -219,6 +242,7 @@ export interface MinMax {
 
 const RelevantPrototypeTypes: ReadonlySet<string> = new Set([
   'constructionGraph',
+  'deepFryingRecipe',
   'entity',
   'foodSequenceElement',
   'metamorphRecipe',

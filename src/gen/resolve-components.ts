@@ -429,7 +429,14 @@ const resolveStomach = (
     draft.stomach = {
       components: [],
       tags: [],
+      // MUST MIRROR C#! `StomachComponent.IsSpecialDigestibleExclusive`
+      // defaults to true.
+      exclusive: true,
     };
+  }
+
+  if (comp.isSpecialDigestibleExclusive != null) {
+    draft.stomach.exclusive = comp.isSpecialDigestibleExclusive;
   }
 
   const whitelist = comp.specialDigestible;

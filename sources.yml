@@ -44,11 +44,11 @@ starlight:
     stir: Spoon
     shake: DrinkShaker
     construct: ClothingHeadHatChef # general recipes
-    # FRONTIER-SPECIFIC.
-    # This cooking method is unique to Frontier and should be `null` unless
-    # the fork has explicitly and specifically ported Frontier's deep frying.
-    # When `null`, the deep fry method is not shown in the UI.
-    deepFry: null
+    # Deep frying, supported in two flavours: Frontier's `DeepFrySpawn`
+    # component, and the `deepFryingRecipe` prototype that Starlight took from
+    # Trieste Port 14. Set this to `null` on forks that have neither, or the
+    # deep fry method is shown in the UI without any recipes behind it.
+    deepFry: TP14KitchenDeepFryer
   # The sprite state that is used to fill beakers, for reagent ingredients.
   # This state must be in the same RSI as the main sprite of whatever entity
   # is used for `methodEntities.mix`. Usually the below value is fine.
@@ -84,15 +84,26 @@ starlight:
   # for and looking at the tags associated with its `Stomach` component.
   # Any food that matches the stomach's entity whitelist (of which the cookbook
   # only supports tags and components) is deemed to belong to the diet.
+  #
+  # Only stomachs whose whitelist is *exclusive* belong here. A stomach with
+  # `isSpecialDigestibleExclusive: false` eats ordinary food as well as its
+  # whitelist, so it isn't a restriction; the generator rejects those outright.
+  # On Starlight that rules out vox (Trash), koni (ClothMade) and every Neocyte
+  # variant (RamChip) -- all of them eat everything a human does, and more.
+  # These three are the complete set of restricted diets across all 42 species.
   # Optional. Default value: []
   specialDiets:
       # The entity prototype ID of the species' stomach organ. If the species
       # has no stomach organ, then tough luck!
+      #
+      # Shared by reptilians and felionoids, which is why the wording below
+      # names both. Tags: Fruit, ReptilianFood, Meat, Pill, Crayon, Paper,
+      # IceCream.
     - organ: OrganReptilianStomach
       # The colour of the little wedge shown on matching recipes.
       color: "#2e6b2e"
       # The tooltip shown when hovering over the wedge.
-      hint: "Reptilians can eat this food."
+      hint: "Reptilians and felionoids can eat this food."
       # The label of the filter button.
       filterName: "Reptilian-edible"
       # A brief summary of the diet, shown only when there are no matching
@@ -106,6 +117,21 @@ starlight:
       # *technically* eat but shouldn't. For example, kodepiiae on Impstation.
       # Optional. Default value: null
       # Starlight reptilians have no such allergy, so this is omitted.
+      # Tags: ClothMade, Paper, Pill, IceCream. Note that koni (CatMoth) share
+      # the cloth-eating trait but are not restricted, so they aren't named.
+    - organ: OrganMothStomach
+      # Purple rather than a moth-ish brown: the wedge has to stay tellable
+      # apart from the theobromine marker, which is already chocolate brown.
+      color: "#6b4a9e"
+      hint: "Moths can eat this food."
+      filterName: "Moth-edible"
+      filterSummary: "moth-edible"
+      # Tags: Meat, Pill, Crayon, Paper, AvianFood, IceCream.
+    - organ: OrganAvaliStomach
+      color: "#3b6ea5"
+      hint: "Avali can eat this food."
+      filterName: "Avali-edible"
+      filterSummary: "avali-edible"
   # Special reagents!
   # Any food containing the reagents listed here will be highlighted.
   # Optional. Default value: []

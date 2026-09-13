@@ -1,9 +1,14 @@
-import { OneOrMoreEntities } from '../types';
+import { OneOrMoreEntities, ReagentSourceMethod } from '../types';
 import { EntitySpawnEntry, Solution } from './components';
-import { DefaultRecipeGroup, MixerCategoryToStepType } from './constants';
+import {
+  DefaultDeepFryCookTime,
+  DefaultRecipeGroup,
+  MixerCategoryToStepType,
+} from './constants';
 import { ConstructRecipeBuilder } from './construct-recipe-builder';
 import {
   ConstructionGraphMap,
+  DeepFryingRecipe,
   EntityId,
   FoodSequenceElementId,
   FoodSequenceElementMap,
@@ -28,6 +33,7 @@ import {
   ResolvedConstructionRecipe,
   ResolvedEntity,
   ResolvedEntityMap,
+  ResolvedReagentSource,
   ResolvedSpecialRecipe,
 } from './types';
 
@@ -37,7 +43,7 @@ export interface PrunedGameData {
   readonly recipes: readonly MicrowaveMealRecipe[];
   readonly reactions: readonly ReactionPrototype[];
   readonly specialRecipes: ReadonlyMap<string, ResolvedSpecialRecipe>;
-  readonly reagentSources: ReadonlyMap<ReagentId, readonly EntityId[]>;
+  readonly reagentSources: ReadonlyMap<ReagentId, readonly ResolvedReagentSource[]>;
   readonly foodSequenceStartPoints: ReadonlyMap<TagId, readonly EntityId[]>;
   readonly foodSequenceElements: ReadonlyMap<TagId, readonly EntityId[]>;
   readonly foodSequenceEndPoints: ReadonlyMap<TagId, readonly EntityId[]>;
@@ -69,6 +75,17 @@ export const filterRelevantPrototypes = (
     usedReagents,
     raw.stacks,
     params.ignoredRecipes
+  );
+
+  // Starlight's deep fryer recipes are prototypes too, so they also belong to
+  // the root set. Their ingredients are frequently *only* reachable this way:
+  // nothing else calls for a rope of dough or a frozen sundae.
+  collectDeepFryingRecipes(
+    raw.deepFryingRecipes,
+    specialRecipes,
+    usedEntities,
+    allEntities,
+    params.ignoredSpecialRecipes
   );
 
   // Next, we'll add metamorph recipes. These are the second part of the
@@ -208,6 +225,66 @@ const collectMicrowaveRecipes = (
     }
   }
   return relevantRecipes;
+};
+
+const collectDeepFryingRecipes = (
+  allRecipes: readonly DeepFryingRecipe[],
+  specialRecipes: Map<string, ResolvedSpecialRecipe>,
+  usedEntities: Set<EntityId>,
+  allEntities: ResolvedEntityMap,
+  ignoredSpecialRecipes: ReadonlySet<string>
+): void => {
+  for (const recipe of allRecipes) {
+    // Keyed on the ingredient, like Frontier's deep fry recipes, since that's
+    // what the fryer matches on. Two prototypes with the same ingredient could
+    // never both fire in game -- the fryer takes the first one it enumerates --
+    // so first one wins here too.
+    const recipeId = `deepFry!${recipe.ingredient}`;
+    if (specialRecipes.has(recipeId) || ignoredSpecialRecipes.has(recipeId)) {
+      continue;
+    }
+
+    // Deep fryer recipes reference entities by ID with no validation on the
+    // game's side: a typo, or content that didn't come along with the port,
+    // just means the recipe never fires. Don't let it take the build down.
+    const ingredient = allEntities.get(recipe.ingredient);
+    const result = allEntities.get(recipe.result);
+    if (!ingredient || ingredient.abstract || !result || result.abstract) {
+      console.warn(
+        `Deep frying recipe ${recipe.id}: unknown entity: ${
+          !ingredient || ingredient.abstract ? recipe.ingredient : recipe.result
+        }`
+      );
+      continue;
+    }
+
+    // Yes, you can deep fry a felionoid. No, we're not putting it in the
+    // cookbook: mobs are excluded here for the same reason they're excluded
+    // from butchering recipes, and a species mob has no sprite of its own to
+    // draw anyway -- the game assembles it from humanoid appearance at runtime.
+    if (ingredient.components.has('Body')) {
+      console.warn(
+        `Deep frying recipe ${recipe.id}: ignoring mob ingredient: ${
+          recipe.ingredient
+        }`
+      );
+      continue;
+    }
+
+    usedEntities.add(recipe.ingredient);
+    usedEntities.add(recipe.result);
+    specialRecipes.set(recipeId, {
+      method: 'deepFry',
+      time: recipe.time ?? DefaultDeepFryCookTime,
+      solidResult: recipe.result,
+      reagentResult: null,
+      solids: {
+        [recipe.ingredient]: 1,
+      },
+      reagents: {},
+      group: recipe.group ?? DefaultRecipeGroup,
+    });
+  }
 };
 
 const addMetamorphRecipes = (
@@ -550,7 +627,10 @@ const tryAddSpecialRecipes = (
   // Frontier: If the entity has a DeepFrySpawn, we can deep fry it. Crispy.
   if (deepFryOutput) {
     const recipeId = `deepFry!${entity.id}`;
-    if (!specialRecipes.has(recipeId)) {
+    if (
+      !specialRecipes.has(recipeId) &&
+      !ignoredSpecialRecipes.has(recipeId)
+    ) {
       usedEntities.add(entity.id);
       usedEntities.add(deepFryOutput);
       specialRecipes.set(recipeId, {
@@ -789,7 +869,7 @@ function* traverseConstructionGraph(
 
     const { steps } = edge;
     if (
-      steps.length !== 1 || // No support for multi-step construction
+      steps?.length !== 1 || // No support for multi-step construction
       target.entity == null ||
       target.entity === entityId
     ) {
@@ -848,8 +928,23 @@ const collectReagentSources = (
   usedReagents: Set<ReagentId>,
   ignoreSourcesOf: ReadonlySet<ReagentId>,
   forceIncludeReagentSources: ReadonlyMap<ReagentId, readonly EntityId[]>
-): Map<ReagentId, EntityId[]> => {
-  const result = new Map<ReagentId, EntityId[]>();
+): Map<ReagentId, ResolvedReagentSource[]> => {
+  const result = new Map<ReagentId, ResolvedReagentSource[]>();
+
+  const addSource = (
+    reagentId: ReagentId,
+    source: ResolvedReagentSource
+  ): void => {
+    const existing = result.get(reagentId);
+    // An entity can yield the same reagent from both its grind and its juice
+    // solution -- cocoa beans do -- so dedupe on the pair, not the entity.
+    if (existing?.some(s =>
+      s.entity === source.entity && s.method === source.method
+    )) {
+      return;
+    }
+    appendAtKey(result, reagentId, source);
+  };
 
   for (const entity of allEntities.values()) {
     if (entity.abstract) {
@@ -863,12 +958,12 @@ const collectReagentSources = (
     );
     if (sourceOf && sourceOf.length > 0) {
       usedEntities.add(entity.id);
-      for (const reagentId of sourceOf) {
+      for (const { reagentId, method } of sourceOf) {
         if (ignoreSourcesOf.has(reagentId)) {
           continue;
         }
 
-        appendAtKey(result, reagentId, entity.id);
+        addSource(reagentId, { entity: entity.id, method });
       }
     }
   }
@@ -880,18 +975,25 @@ const collectReagentSources = (
 
     for (const entityId of sources) {
       usedEntities.add(entityId);
-      appendAtKey(result, reagentId, entityId);
+      // No method: the fork tells us the entity, not how to get the reagent
+      // out of it. Butter goes in a beaker; eggs get cracked.
+      addSource(reagentId, { entity: entityId });
     }
   }
 
   return result;
 };
 
+interface GrindableReagent {
+  readonly reagentId: ReagentId;
+  readonly method: ReagentSourceMethod;
+}
+
 const findGrindableProduceReagents = (
   entity: ResolvedEntity,
   usedReagents: Set<ReagentId>,
   allEntities: ResolvedEntityMap
-): ReagentId[] | null => {
+): GrindableReagent[] | null => {
   const { isProduce, extractable, solutions } = entity;
 
   if (
@@ -903,26 +1005,26 @@ const findGrindableProduceReagents = (
     return null;
   }
 
-  const foundSolutions: Solution[] = [];
+  const foundSolutions: [Solution, ReagentSourceMethod][] = [];
 
   const grindSolution =
     extractable.grindSolutionName &&
     findSolution(allEntities, entity, extractable.grindSolutionName);
   if (grindSolution && grindSolution.reagents) {
-    foundSolutions.push(grindSolution);
+    foundSolutions.push([grindSolution, 'grind']);
   }
   if (extractable.juiceSolution?.reagents) {
-    foundSolutions.push(extractable.juiceSolution);
+    foundSolutions.push([extractable.juiceSolution, 'juice']);
   }
 
   if (foundSolutions.length === 0) {
     return null;
   }
 
-  return foundSolutions.flatMap(solution =>
+  return foundSolutions.flatMap(([solution, method]) =>
     solution.reagents!
-      .map(reagent => reagent.ReagentId)
-      .filter(id => usedReagents.has(id))
+      .filter(reagent => usedReagents.has(reagent.ReagentId))
+      .map(reagent => ({ reagentId: reagent.ReagentId, method }))
   );
 };
 

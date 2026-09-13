@@ -149,6 +149,13 @@ export interface SpriteComponent {
 export interface StomachComponent {
   readonly type: 'Stomach';
   readonly specialDigestible?: EntityWhitelist;
+  /**
+   * When true (the C# default), the stomach digests *only* what passes the
+   * whitelist -- a real dietary restriction. When false, the whitelist merely
+   * adds to what the stomach can already eat, so the species is not restricted
+   * at all. Vox and every Neocyte variant are the latter.
+   */
+  readonly isSpecialDigestibleExclusive?: boolean;
 }
 
 export interface EntityWhitelist {
