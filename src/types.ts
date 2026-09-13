@@ -180,6 +180,7 @@ export type ConstructionStep =
   | AddStep
   | AddReagentStep
   | SimpleInteractionStep
+  | SpikeStep
   | AlsoMakesStep
   ;
 
@@ -236,6 +237,16 @@ export interface HeatMixtureStep {
 /** Simple, single-verb interaction that doesn't need any extra data. */
 export interface SimpleInteractionStep {
   readonly type: 'cut' | 'roll' | 'stir' | 'shake';
+}
+
+/**
+ * "Crack it into a container" -- emptying an entity's solution into a
+ * container, which destroys the entity. Kept apart from
+ * `SimpleInteractionStep` because it has no cooking-method sprite of its own.
+ */
+export interface SpikeStep {
+  readonly type: 'spike';
+  readonly verb: 'crack' | 'spike';
 }
 
 /** A pseudo-step that informs the user that the recipe makes other things. */

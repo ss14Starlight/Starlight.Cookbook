@@ -7,7 +7,7 @@ import {
 } from '../types';
 import { DefaultRecipeGroup } from './constants';
 import { EntityId, ReagentId } from './prototypes';
-import { ResolvedConstructionRecipe } from './types';
+import { ResolvedConstructionRecipe, SpikeVerb } from './types';
 
 // The lack of `amount` field is technically invalid, but for construct recipes
 // in particular, the amount is not used.
@@ -159,6 +159,10 @@ export class ConstructRecipeBuilder {
     return this.pushStep(ShakeStep);
   }
 
+  public spike(verb: SpikeVerb): this {
+    return this.pushStep({ type: 'spike', verb });
+  }
+
   public alsoMakes(entity: OneOrMoreEntities): this {
     return this.pushStep({ type: 'alsoMakes', entity });
   }
@@ -193,6 +197,8 @@ export class ConstructRecipeBuilder {
       case 'roll':
       case 'stir':
       case 'shake':
+      // The spiked entity is already recorded by the preceding `start` step.
+      case 'spike':
         // No ingredients
         break;
     }

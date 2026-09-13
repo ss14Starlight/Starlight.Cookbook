@@ -93,6 +93,11 @@ export interface ResolvedEntity {
    */
   readonly extractable: ResolvedExtractable | null;
   /**
+   * If the entity can be emptied into a container (SolutionSpiker), contains
+   * the name of the solution transferred and how to describe the action.
+   */
+  readonly spiker: ResolvedSpiker | null;
+  /**
    * If the entity can start a food sequence, contains the food sequence key
    * and maximum layer count.
    */
@@ -192,6 +197,19 @@ export interface ResolvedExtractable {
    */
   readonly juiceSolution: Solution | null;
 }
+
+export interface ResolvedSpiker {
+  /** Name of the solution poured into the target container. */
+  readonly solutionName: string;
+  /**
+   * How the action reads to a player. The game distinguishes these through the
+   * popup string: eggs get "You crack {$spike-entity} into ...", everything
+   * else gets the generic "You spike ... with {$spike-entity}".
+   */
+  readonly verb: SpikeVerb;
+}
+
+export type SpikeVerb = 'crack' | 'spike';
 
 export interface ResolvedSlice {
   readonly slice: EntityId | null;

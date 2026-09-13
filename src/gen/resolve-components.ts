@@ -11,6 +11,7 @@ import {
   Solution,
   SolutionComponent,
   SolutionContainerManagerComponent,
+  SolutionSpikerComponent,
   SolutionManagerComponent,
   SpriteComponent,
   StomachComponent,
@@ -84,6 +85,7 @@ const InitialState: ResolvedEntity = {
   solutions: null,
   reagents: new Set(),
   extractable: null,
+  spiker: null,
   foodSequenceStart: null,
   foodSequenceElement: null,
   sliceableFood: null,
@@ -144,6 +146,9 @@ const beginResolveEntity = (
         case 'SolutionManager':
         case 'SolutionContainerManager':
           resolveSolutions(draft, comp);
+          break;
+        case 'SolutionSpiker':
+          resolveSolutionSpiker(draft, comp);
           break;
         case 'Sprite':
           resolveSprite(draft, comp);
@@ -228,6 +233,31 @@ const resolveExtractable = (
   }
   if (comp.juiceSolution != null) {
     draft.extractable.juiceSolution = comp.juiceSolution as Draft<Solution>;
+  }
+};
+
+/** The game's default when `sourceSolution` is omitted. */
+const DefaultSpikeSolution = 'default';
+
+/** Fluent key the game uses for the egg-specific "you crack it" popup. */
+const CrackPopupKey = 'spike-solution-egg';
+
+const resolveSolutionSpiker = (
+  draft: Draft<ResolvedEntity>,
+  comp: SolutionSpikerComponent
+): void => {
+  if (!draft.spiker) {
+    draft.spiker = {
+      solutionName: DefaultSpikeSolution,
+      verb: 'spike',
+    };
+  }
+
+  if (comp.sourceSolution != null) {
+    draft.spiker.solutionName = comp.sourceSolution;
+  }
+  if (comp.popup != null) {
+    draft.spiker.verb = comp.popup === CrackPopupKey ? 'crack' : 'spike';
   }
 };
 

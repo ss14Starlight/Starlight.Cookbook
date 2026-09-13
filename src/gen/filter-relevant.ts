@@ -101,6 +101,7 @@ export const filterRelevantPrototypes = (
         usedReagents,
         allEntities,
         raw.constructionGraphs,
+        raw.reagents,
         params.ignoredSpecialRecipes
       )) {
         hasAnythingNew = true;
@@ -408,6 +409,7 @@ const tryAddSpecialRecipes = (
   usedReagents: Set<ReagentId>,
   allEntities: ResolvedEntityMap,
   allConstructionGraphs: ConstructionGraphMap,
+  allReagents: ReagentMap,
   ignoredSpecialRecipes: ReadonlySet<string>
 ): boolean => {
   // NOTE: We CANNOT treat slicing and constructing as mutually exclusive!
@@ -434,6 +436,45 @@ const tryAddSpecialRecipes = (
         .withResultQty(sliceableFood.count)
         .startWith(entity.id)
         .cut()
+        .toRecipe();
+      collectRefs(usedEntities, usedReagents, recipe);
+      specialRecipes.set(recipeId, recipe);
+      addedAnything = true;
+    }
+  }
+
+  // If the entity can be emptied into a container, it is a source of whatever
+  // reagent that solution holds -- this is how a chef gets raw egg. Without
+  // this the reagent looks like it has no origin at all, since nothing
+  // *reacts* into it.
+  if (entity.spiker) {
+    const solution = findSolution(
+      allEntities,
+      entity,
+      entity.spiker.solutionName
+    );
+    for (const reagent of solution?.reagents ?? []) {
+      const proto = allReagents.get(reagent.ReagentId);
+      if (
+        !usedReagents.has(reagent.ReagentId) ||
+        // Pills are spikeable too. Without this gate every medicine that
+        // happens to share a reagent with a drink shows up as a "recipe".
+        !proto ||
+        !isFoodRelatedReagent(proto)
+      ) {
+        continue;
+      }
+
+      const recipeId = `spike!${entity.id}:${reagent.ReagentId}`;
+      if (specialRecipes.has(recipeId) || ignoredSpecialRecipes.has(recipeId)) {
+        continue;
+      }
+
+      const recipe = new ConstructRecipeBuilder()
+        .withReagentResult(reagent.ReagentId)
+        .withResultQty(reagent.Quantity)
+        .startWith(entity.id)
+        .spike(entity.spiker.verb)
         .toRecipe();
       collectRefs(usedEntities, usedReagents, recipe);
       specialRecipes.set(recipeId, recipe);

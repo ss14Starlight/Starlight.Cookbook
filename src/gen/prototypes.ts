@@ -57,8 +57,12 @@ export interface EntityPrototype extends PlainObject {
 export interface ReagentPrototype extends PlainObject {
   readonly type: 'reagent';
   readonly id: ReagentId;
+  readonly parent?: ReagentId | ReagentId[];
+  readonly abstract?: boolean;
   readonly name: string; // Fluent key :(
   readonly color?: string;
+  // Frequently declared on a base prototype rather than the reagent itself,
+  // so read this only after `flattenInheritance` has run.
   readonly group?: string;
 }
 
@@ -74,6 +78,11 @@ export interface MicrowaveMealRecipe extends PlainObject {
   readonly group?: string;
   /** Frontier */
   readonly recipeType?: string | readonly string[];
+  /**
+   * Starlight. Equivalent to Frontier's `recipeType`, but a single value drawn
+   * from the `CookingDeviceType` enum (Microwave, Oven, Stove, IceCreamMaker).
+   */
+  readonly deviceType?: string;
   /** Frontier */
   readonly resultCount?: number;
 }

@@ -9,6 +9,7 @@ import {
   HeatStep,
   MixStep,
   SimpleInteractionStep,
+  SpikeStep,
   StartStep,
 } from '../../types';
 import { useGameData } from '../context';
@@ -64,6 +65,8 @@ const Step = ({ step, visible }: StepProps): ReactElement => {
     case 'stir':
     case 'shake':
       return <SimpleStep step={step}/>;
+    case 'spike':
+      return <SpikeStep step={step}/>;
     case 'alsoMakes':
       return <AlsoMakesStep step={step}/>;
   }
@@ -244,6 +247,19 @@ const SimpleStepText: Readonly<Record<SimpleInteractionStep['type'], string>> = 
   shake: 'Shake it',
   stir: 'Stir it',
 };
+
+interface SpikeStepProps {
+  step: SpikeStep;
+}
+
+// No sprite: spiking isn't a cooking method, so there's no method entity (and
+// therefore no sprite) to show for it.
+const SpikeStep = ({ step }: SpikeStepProps): ReactElement =>
+  <li className='recipe_step recipe_step--compact'>
+    {step.verb === 'crack'
+      ? 'Crack it into a container'
+      : 'Empty it into a container'}
+  </li>;
 
 interface AlsoMakesStepProps {
   step: AlsoMakesStep;

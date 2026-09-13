@@ -1,0 +1,213 @@
+# This is a documented example file showing all possible fork options. For a
+# realistic example, see `sources.real.yml`. This contains the real, actual
+# configuration used by the SS14 Cookbook on ss14.recipes.
+#
+# While large parts of the cookbook are configurable, some things are hardcoded.
+# Please see `src/gen/constants.ts` for hardcoded things, which may be necessary
+# to modify if you're doing heavy customisation.
+
+# The unique ID of this fork. It must be stable over time.
+# It is used in the URL when you select the fork (unless `default: true`),
+# saved in menus, and of course present in file names.
+# You are strongly recommended to make it all lowercase, a-z, 0-9, maybe with
+# a dash or underscore somewhere.
+# Forks are listed in the same order as in this file.
+starlight:
+  # The display name of the fork, shown in the fork dropdown. Keep it short,
+  # or the fork selector will look bad.
+  name: "Starlight"
+  # Description, also shown in the fork dropdown. Also keep this one short.
+  description: "MRP server focused on cool stuff in space. Probably dragons."
+  # Path to the local copy of the repository. The cookbook DOES NOT clone
+  # or update the repo; these tasks must be managed separately.
+  path: "../space-station-14"
+  # Path to the repository on GitHub, of the form "username/repo". Various
+  # parts of the cookbook will prepend "https://github.com/", and append
+  # paths to commits, files, etc.
+  # Sites other than GitHub are not currently supported.
+  repo: "ss14Starlight/space-station-14"
+  # If true, this will be the *default* fork. When someone visits the page
+  # without a `fork` parameter in the URL, the default fork is chosen.
+  # If there is no default fork, the cookbook uses the first fork in the list.
+  # Optional. Default value: false
+  default: true
+  # Maps cooking methods to entities. The entity is used exclusively to find
+  # an appropriate sprite for the cooking method.
+  # I strongly suggest using the below values.
+  methodEntities:
+    microwave: KitchenMicrowave
+    mix: LargeBeaker
+    cut: KitchenKnife
+    roll: RollingPin
+    heat: KitchenElectricGrill
+    heatMixture: ChemistryHotplate
+    stir: Spoon
+    shake: DrinkShaker
+    construct: ClothingHeadHatChef # general recipes
+    # FRONTIER-SPECIFIC.
+    # This cooking method is unique to Frontier and should be `null` unless
+    # the fork has explicitly and specifically ported Frontier's deep frying.
+    # When `null`, the deep fry method is not shown in the UI.
+    deepFry: null
+  # The sprite state that is used to fill beakers, for reagent ingredients.
+  # This state must be in the same RSI as the main sprite of whatever entity
+  # is used for `methodEntities.mix`. Usually the below value is fine.
+  mixFillState: beakerlarge4
+  # Cooking devices.
+  # Starlight has its own equivalent of Frontier's microwave recipe types: the
+  # `deviceType` field on `microwaveMealRecipe`, whose values come from the
+  # CookingDeviceType enum in Content.Shared/_Starlight/Kitchen/SharedKitchen.cs.
+  # Every value of that enum must appear below, or its recipes will silently
+  # fall back to the default type and be shown as microwave recipes.
+  microwaveRecipeTypes:
+    Microwave:
+      # Recipes with no `deviceType` default to Microwave in C#, so this must
+      # be the default here too.
+      default: true
+      machine: KitchenMicrowave
+      verb: "Microwave"
+      filterSummary: "microwave"
+    Oven:
+      machine: KitchenOven
+      verb: "Bake"
+      filterSummary: "oven"
+    Stove:
+      machine: KitchenStove
+      verb: "Cook"
+      filterSummary: "stove"
+    IceCreamMaker:
+      machine: IceCreamMaker
+      verb: "Churn"
+      filterSummary: "ice cream"
+  # Special diets!
+  # Diets work by finding the stomach organ of the species that the diet is
+  # for and looking at the tags associated with its `Stomach` component.
+  # Any food that matches the stomach's entity whitelist (of which the cookbook
+  # only supports tags and components) is deemed to belong to the diet.
+  # Optional. Default value: []
+  specialDiets:
+      # The entity prototype ID of the species' stomach organ. If the species
+      # has no stomach organ, then tough luck!
+    - organ: OrganReptilianStomach
+      # The colour of the little wedge shown on matching recipes.
+      color: "#2e6b2e"
+      # The tooltip shown when hovering over the wedge.
+      hint: "Reptilians can eat this food."
+      # The label of the filter button.
+      filterName: "Reptilian-edible"
+      # A brief summary of the diet, shown only when there are no matching
+      # recipes, in the text "Couldn’t find any (filterSummary) recipes ...".
+      # Example: "Couldn’t find any reptilian-edible recipes ..."
+      filterSummary: "reptilian-edible"
+      # IMPSTATION-SPECIFIC.
+      # If present, excludes foods that contain the specified reagents, even if
+      # they otherwise match the stomach's whitelist. Useful if the species has
+      # an allergy to a reagent commonly present in foods the species can
+      # *technically* eat but shouldn't. For example, kodepiiae on Impstation.
+      # Optional. Default value: null
+      # Starlight reptilians have no such allergy, so this is omitted.
+  # Special reagents!
+  # Any food containing the reagents listed here will be highlighted.
+  # Optional. Default value: []
+  specialReagents:
+      # The reagent ID. Must match the game's ID for the reagent.
+    - id: Theobromine
+      # The colour of the little wedge shown on matching recipes.
+      # I normally try to keep this the same as the in-game colour, *but* it's
+      # worth noting that many reagents are white or off-white. Theobromine is
+      # one case where I recoloured it to resemble chocolate and coffee, common
+      # sources of theobromine.
+      color: "#b9643b"
+      # The tooltip shown when hovering over the wedge.
+      hint: "This food contains theobromine, poisonous to some species."
+      # The label of the 'special property' button in the filter.
+      filterName: "Contains Theobromine"
+      # A brief summary of the diet, shown only when there are no matching
+      # recipes, in the text "Couldn’t find any (filterSummary) recipes ...".
+      # Example: "Couldn’t find any theobromine-containing recipes ..."
+      filterSummary: "theobromine-containing"
+  # List of paths to files with sorting ID rewrites.
+  # These files rewrite entity prototype IDs to get a better default order in
+  # the recipe listing. The repository comes with two files for this purpose:
+  # "rewrites_base.yml" and "rewrites_frontier.yml". Feel free to add your own!
+  # Optional. Default value: []    (no sorting rewrites)
+  sortingIdRewrites:
+    - "rewrites_base.yml"
+  # Recipes to ignore. The values are recipe prototype IDs.
+  # Optional. Default value: []    (include all recipes)
+  ignoredRecipes:
+    - NFRecipeBuildABuddyHuman
+    - NFRecipeBuildABuddyGoblin
+    - NFRecipeBuildABuddyReptilian
+    - NFRecipeBuildABuddySlime
+    - NFRecipeBuildABuddyVulpkanin
+    - FoodBurgerDuck
+  # Special (non-microwave) recipes to ignore. The values are the generated
+  # recipe ID, which follows the format `method!EntityID`. The entity ID is
+  # either the singular ingredient, for `heat`, `cut`, `roll` and `deepFry`
+  # recipes, or the ID of the reaction for `r` (reaction).
+  # Note: *not* the reagent ID! To exclude the dough reaction, you would add
+  # `r!CreateDough`, not `r!FoodDough`.
+  # Optional. Default value: []    (include all recipes)
+  ignoredSpecialRecipes:
+    # These eggs look indistinguishable from regular FoodEgg, and the recipes
+    # as a result are also seemingly identical. To avoid confusing people with
+    # three identical egg ingredients and three identical boiled egg recipes,
+    # we ignore these recipes altogether.
+    - heat!FoodEggChickenFertilized
+    - heat!FoodEggDuckFertilized
+    # Same reasoning for cracking them: one "crack an egg" recipe is enough.
+    - spike!FoodEggChickenFertilized:Egg
+    - spike!FoodEggDuckFertilized:Egg
+    - spike!FoodEggCompyFertilized:Egg
+  # Entities to ignore as food sequence elements. The value is a list of entity
+  # prototype IDs. These entities will not be present in *any* list of food
+  # sequence elements. Use this to exclude weird or extremely rare items, or
+  # to de-duplicate otherwise identical-looking items (e.g. real and fake
+  # capfruit).
+  #
+  # The values below are examples; see `sources.real.yml` for the real values.
+  # Optional. Default value: []    (include everything)
+  ignoredFoodSequenceElements:
+    - FoodFakeCapfruit
+    - MobMouseDead
+    - MobMouse1
+    - MobMouse2
+  # Don't generate or show sources of these reagents. They tend to bload the
+  # list without providing anything useful. Almost all produces can be ground
+  # into nutriment, many meats into blood.
+  # Optional. Default value: []    (include all sources)
+  ignoreSourcesOf:
+    - Water
+    - Blood
+    - Nutriment
+    - Vitamin
+  # "Harcoded" reagent sources. The key is the reagent ID, the value is a list
+  # of entities that the reagent can be obtained from.
+  # Note: The source entities will *always* be added to the generated file,
+  # even if they are not used as ingredients in any recipe.
+  # TODO: Migrate to deriving automatically from SolutionSpikerComponent.
+  # Optional: Default value: []
+  forceIncludeReagentSources:
+    # Eggs can be trivially cracked into raw egg.
+    Egg: [FoodEgg]
+    # Butter can be put into a beaker!
+    Butter: [FoodButter, FoodButterSlice, FoodCannabisButter]
+    THC: [FoodCannabisButter] # lol
+  # Some sprites are a little bit strangely aligned, in ways that look ugly in
+  # the UI. The idea is to keep the sprite visually centered within its 32x32
+  # bounding box.
+  #
+  # The key is the entity prototype ID, the value is a list of two numbers,
+  # [dx, dy]. Note that these offsets are *added* to the sprite position, and
+  # that y=0 is at the *top*. That means a positive dy moves the sprite *down*,
+  # not up.
+  #
+  # Keep this list fairly small. Updates to the game can easily break it, as
+  # has already happened with the microwave sprite.
+  #
+  # The values below are examples; see `sources.real.yml` for the real values.
+  # Optional. Default value: null
+  spriteOffsets:
+    KitchenElectricGrill: [0, 5]
+    ChemistryHotplate: [0, 5]

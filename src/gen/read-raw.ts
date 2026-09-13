@@ -1,7 +1,7 @@
 import { globSync } from 'glob';
 import { resolve } from 'node:path';
 import { CollectionTag, Scalar, YAMLMap, parse } from 'yaml';
-import { readFileTextWithoutTheStupidBOM } from './helpers';
+import { flattenInheritance, readFileTextWithoutTheStupidBOM } from './helpers';
 import {
   ConstructionGraphId,
   ConstructionGraphMap,
@@ -137,7 +137,10 @@ export const readRawGameData = (yamlPaths: string[]): RawGameData => {
   }
   return {
     entities,
-    reagents,
+    // Entities are flattened later, per-component, by `resolve-components.ts`.
+    // Reagents have no such pass, so flatten them here and let every consumer
+    // read fields like `group` and `color` directly.
+    reagents: flattenInheritance(reagents, 'Reagent'),
     stacks,
     constructionGraphs,
     metamorphRecipes,

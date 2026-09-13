@@ -26,6 +26,7 @@ export type Component =
   | SolutionComponent
   | SolutionManagerComponent
   | SolutionContainerManagerComponent
+  | SolutionSpikerComponent
   | SpriteComponent
   | StomachComponent
   | TagComponent
@@ -85,6 +86,22 @@ export interface SliceableFoodComponent {
   readonly type: 'SliceableFood';
   readonly slice?: EntityId;
   readonly count?: number;
+}
+
+/**
+ * Lets the entity be emptied into another container by clicking it on that
+ * container, destroying the entity in the process. This is how you get raw egg:
+ * eggs carry their 6u of `Egg` in a solution and are spiked into a bowl.
+ */
+export interface SolutionSpikerComponent {
+  readonly type: 'SolutionSpiker';
+  /** The solution transferred to the target. Defaults to `default` in game. */
+  readonly sourceSolution?: string;
+  /**
+   * Fluent key for the popup shown on success. We only use it to tell "crack an
+   * egg" apart from spiking in general, since the wording differs.
+   */
+  readonly popup?: string;
 }
 
 /** Old solution container, still used by most forks. */

@@ -127,7 +127,10 @@ const resolveRecipeSubtype = (
   recipe: MicrowaveMealRecipe,
   defaultSubtype: string | undefined
 ): string | readonly string[] | undefined => {
-  const subtype = recipe.recipeType;
+  // Frontier calls this `recipeType` and allows a list; Starlight calls it
+  // `deviceType` and allows exactly one value. Either way it selects which
+  // machine the recipe is cooked in.
+  const subtype = recipe.recipeType ?? recipe.deviceType;
   if (Array.isArray(subtype)) {
     switch (subtype.length) {
       case 0:

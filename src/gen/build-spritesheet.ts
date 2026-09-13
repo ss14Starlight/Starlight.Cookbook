@@ -190,13 +190,6 @@ const toDrawableSprite = (
     : ColorWhite;
 
   const layers: DrawableLayer[] = [];
-  if (sprite.state && basePath) {
-    layers.push({
-      color: baseColor,
-      path: basePath,
-      state: sprite.state,
-    });
-  }
 
   for (let i = 0; i < sprite.layers.length; i++) {
     const layer = sprite.layers[i];
@@ -220,6 +213,25 @@ const toDrawableSprite = (
       path,
       state: layer.state,
       color: multiplyColors(baseColor, color),
+    });
+  }
+
+  // The component's bare `state` is a *fallback*, not an extra bottom layer.
+  // The engine only promotes it to a layer when `layers` is empty (see
+  // SpriteComponent.Initialize in RobustToolbox), so drawing it underneath a
+  // populated layer list is wrong: an entity that inherits `state` from a
+  // parent and then declares its own `layers` never renders that state, and it
+  // may not even exist in the child's RSI (e.g. FoodFeastFestiveDinner, which
+  // inherits `state: box` from BoxCardboard but draws from turkey.rsi).
+  //
+  // We also fall back to it when every layer was skipped above, which happens
+  // when layers start `visible: false` and are switched on at runtime by a
+  // visualizer we can't run (e.g. StackVisuals on FoodBakedPancake).
+  if (layers.length === 0 && sprite.state && basePath) {
+    layers.push({
+      color: baseColor,
+      path: basePath,
+      state: sprite.state,
     });
   }
 
