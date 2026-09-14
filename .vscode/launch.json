@@ -3,7 +3,7 @@
   "configurations": [
     {
       "name": "Cookbook: Run and Debug",
-      "type": "chrome",
+      "type": "editor-browser",
       "request": "launch",
       "url": "http://localhost:5514",
       "webRoot": "${workspaceFolder}",
