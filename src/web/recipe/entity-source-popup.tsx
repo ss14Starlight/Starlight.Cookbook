@@ -1,4 +1,10 @@
-import { cloneElement, ReactElement, Ref } from 'react';
+import {
+  cloneElement,
+  ReactElement,
+  Ref,
+  useEffect,
+  useState,
+} from 'react';
 import { EntitySource, VendingStock } from '../../types';
 import { useGameData } from '../context';
 import { Popup, usePopupTrigger } from '../popup';
@@ -17,6 +23,7 @@ export const EntitySourcePopup = ({
   children,
 }: Props): ReactElement => {
   const popup = usePopupTrigger();
+  const { entityMap } = useGameData();
   const childWithRef = cloneElement(children, {
     ref: popup.triggerRef,
   });
@@ -39,16 +46,29 @@ export const EntitySourcePopup = ({
       interactive
     >
       <div className='popup_entity-source'>
-        {Array.from(byStock, ([stock, group]) =>
-          <div key={stock} className='entity-source'>
-            <div className='entity-source_verb'>
-              {StockText[stock](group.length)}
+        {Array.from(byStock, ([stock, group]) => {
+          const vendors = new Map<string, string[]>();
+          for (const source of group) {
+            const name = entityMap.get(source.vendor)?.name ?? source.vendor;
+            const ids = vendors.get(name);
+            if (ids) {
+              ids.push(source.vendor);
+            } else {
+              vendors.set(name, [source.vendor]);
+            }
+          }
+
+          return (
+            <div key={stock} className='entity-source'>
+              <div className='entity-source_verb'>
+                {StockText[stock](vendors.size)}
+              </div>
+              {Array.from(vendors, ([name, ids]) =>
+                <SourceVendor key={name} name={name} ids={ids}/>
+              )}
             </div>
-            {group.map(source =>
-              <SourceVendor key={source.vendor} id={source.vendor}/>
-            )}
-          </div>
-        )}
+          );
+        })}
       </div>
     </Popup>
   </>;
@@ -68,17 +88,43 @@ const StockText: Readonly<Record<
 };
 
 interface SourceVendorProps {
-  id: string;
+  name: string;
+  ids: readonly string[];
 }
 
-const SourceVendor = ({ id }: SourceVendorProps): ReactElement => {
+const SourceVendor = ({ name, ids }: SourceVendorProps): ReactElement => {
   const { entityMap } = useGameData();
-  const entity = entityMap.get(id);
+  const spriteIds: string[] = [];
+  const spritePositions = new Set<string>();
+  for (const id of ids) {
+    const sprite = entityMap.get(id)?.sprite;
+    if (!sprite) {
+      continue;
+    }
+    const key = sprite.join(',');
+    if (!spritePositions.has(key)) {
+      spritePositions.add(key);
+      spriteIds.push(id);
+    }
+  }
+
+  const [spriteIndex, setSpriteIndex] = useState(0);
+  useEffect(() => {
+    if (spriteIds.length < 2) {
+      return;
+    }
+    const interval = window.setInterval(() => {
+      setSpriteIndex(index => (index + 1) % spriteIds.length);
+    }, 1500);
+    return () => window.clearInterval(interval);
+  }, [spriteIds.length]);
+
+  const spriteId = spriteIds[spriteIndex] ?? ids[0];
 
   return (
     <span className='recipe_ingredient'>
-      <EntitySprite id={id}/>
-      <span>{entity?.name ?? id}</span>
+      <EntitySprite id={spriteId}/>
+      <span>{name}</span>
     </span>
   );
 };
