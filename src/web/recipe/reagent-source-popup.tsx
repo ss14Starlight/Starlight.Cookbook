@@ -1,10 +1,17 @@
 import { cloneElement, ReactElement, Ref } from 'react';
-import { ReagentSource, ReagentSourceMethod } from '../../types';
+import {
+  ReagentEntitySource,
+  ReagentSource,
+} from '../../types';
 import { useGameData } from '../context';
 import { Popup, usePopupTrigger } from '../popup';
 import { EntitySprite } from '../sprites';
+import { EntitySourceList } from './entity-source-popup';
+import { SourceRecipe, SourceResult } from './source-recipe';
 
 export interface Props {
+  resultId: string;
+  targetResultQty?: number;
   sources: readonly ReagentSource[];
   children: ReactElement<{
     ref?: Ref<HTMLElement>
@@ -12,13 +19,12 @@ export interface Props {
 }
 
 /**
- * Shown when hovering a reagent that isn't produced by any recipe, but *can*
- * be extracted from an entity: cinnamon out of a cinnamon stick, flour out of
- * a wheat bushel. These aren't recipes -- there'd be dozens of them and each
- * would be a single ingredient with a single step -- so the information lives
- * here instead of in the recipe list.
+ * Shows non-recipe ways to obtain a reagent: extracting it from an entity or
+ * getting a package containing it from a vending machine.
  */
 export const ReagentSourcePopup = ({
+  resultId,
+  targetResultQty,
   sources,
   children,
 }: Props): ReactElement => {
@@ -28,19 +34,6 @@ export const ReagentSourcePopup = ({
     ref: popup.triggerRef,
   });
 
-  // Group by method so each verb is named once, however many entities it
-  // covers. Insertion order gives us grind before juice, matching the order
-  // the generator walks the solutions in.
-  const byMethod = new Map<ReagentSourceMethod | undefined, ReagentSource[]>();
-  for (const source of sources) {
-    let group = byMethod.get(source.method);
-    if (!group) {
-      group = [];
-      byMethod.set(source.method, group);
-    }
-    group.push(source);
-  }
-
   return <>
     {childWithRef}
     <Popup
@@ -48,45 +41,105 @@ export const ReagentSourcePopup = ({
       placement='below'
       interactive
     >
-      <div className='popup_reagent-source'>
-        {Array.from(byMethod, ([method, group]) =>
-          <div key={method ?? 'other'} className='reagent-source'>
-            <div className='reagent-source_verb'>
-              {MethodText[method ?? 'other'](group.length)}
-            </div>
-            {group.map(source =>
-              <SourceEntity key={source.entity} id={source.entity}/>
-            )}
-          </div>
-        )}
+      <div className='popup_recipe'>
+        <ReagentSourceList
+          result={{ type: 'reagent', id: resultId }}
+          sources={sources}
+          targetResultQty={targetResultQty}
+        />
       </div>
     </Popup>
   </>;
 };
 
-const MethodText: Readonly<Record<
-  ReagentSourceMethod | 'other',
-  (count: number) => string
->> = {
-  grind: count => count === 1 ? 'Grind:' : 'Grind any of:',
-  juice: count => count === 1 ? 'Juice:' : 'Juice any of:',
-  // No method recorded, so stay vague rather than tell the player to grind
-  // a stick of butter.
-  other: count => count === 1 ? 'Comes from:' : 'Comes from any of:',
+/** The non-recipe source content, reusable inside a combined recipe popup. */
+export const ReagentSourceList = ({
+  result,
+  sources,
+  targetResultQty,
+}: {
+  result: SourceResult;
+  sources: readonly ReagentSource[];
+  targetResultQty?: number;
+}): ReactElement => {
+  // Sources with different yields need separate cards so the output quantity
+  // in each header remains accurate.
+  const groups = new Map<
+    string,
+    ReagentEntitySource[]
+  >();
+  for (const source of sources.filter(s => s.type !== 'vending')) {
+    const key = `${source.method ?? 'other'}\0${source.amount ?? ''}`;
+    let group = groups.get(key);
+    if (!group) {
+      group = [];
+      groups.set(key, group);
+    }
+    group.push(source);
+  }
+  const vendingSources = sources
+    .filter(source => source.type === 'vending')
+    .map(source => ({
+      type: 'vending' as const,
+      container: source.container,
+      vendor: source.vendor,
+      stock: source.stock,
+    }));
+
+  return (
+    <>
+      {Array.from(groups, ([key, group]) => {
+        const { method, amount } = group[0];
+        // Grinding and juicing consume whole entities and always extract the
+        // entity's full solution. Scale in whole-item batches, then show the
+        // actual amount produced (which may exceed the requested amount).
+        const sourceQty = amount
+          ? Math.max(1, Math.ceil((targetResultQty ?? amount) / amount))
+          : undefined;
+        const resultQty = amount && sourceQty != null
+          ? amount * sourceQty
+          : targetResultQty;
+        return <SourceRecipe
+          key={key}
+          result={result}
+          resultQty={resultQty}
+          method={method}
+        >
+          {group.map(source =>
+            <SourceEntity
+              key={source.entity}
+              id={source.entity}
+              quantity={sourceQty ?? 1}
+            />
+          )}
+        </SourceRecipe>;
+      })}
+      {vendingSources.length > 0 && (
+        <EntitySourceList result={result} sources={vendingSources}/>
+      )}
+    </>
+  );
 };
 
 interface SourceEntityProps {
   id: string;
+  quantity?: number;
 }
 
-const SourceEntity = ({ id }: SourceEntityProps): ReactElement => {
+const SourceEntity = ({ id, quantity }: SourceEntityProps): ReactElement => {
   const { entityMap } = useGameData();
   const entity = entityMap.get(id);
 
   return (
     <span className='recipe_ingredient'>
       <EntitySprite id={id}/>
-      <span>{entity?.name ?? id}</span>
+      <span>
+        {quantity != null ? `${formatAmount(quantity)} ` : null}
+        {entity?.name ?? id}
+      </span>
     </span>
   );
 };
+
+const formatAmount = (amount: number): string =>
+  String(Math.round(amount * 1000) / 1000);

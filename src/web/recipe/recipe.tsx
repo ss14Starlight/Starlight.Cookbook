@@ -20,6 +20,7 @@ import { RecipeIngredients } from './ingredients';
 import { RecipeInstructions } from './instructions';
 import { RecipeMethod } from './method';
 import { RecipeResult } from './result';
+import { useRecipeScale } from './scale-context';
 import { RecipeTraits } from './traits';
 import { useRecipeVisibility } from './visibility-context';
 
@@ -30,6 +31,8 @@ export interface Props {
   canExplore?: boolean;
   headerAction?: ReactElement;
   skipDefaultHeaderAction?: boolean;
+  /** Start the recipe scaled to make this quantity of its result. */
+  targetResultQty?: number;
 }
 
 export const Recipe = memo(({
@@ -39,9 +42,16 @@ export const Recipe = memo(({
   canExplore = true,
   headerAction,
   skipDefaultHeaderAction,
+  targetResultQty,
 }: Props): ReactElement => {
   const { recipeMap, entityMap } = useGameData();
   const recipe = recipeMap.get(id)!;
+  const baseResultQty = recipe.resultQty ?? 1;
+  const globalQuantityScale = useRecipeScale();
+  const quantityScale = targetResultQty != null
+    ? targetResultQty / baseResultQty
+    : globalQuantityScale;
+  const resultQty = baseResultQty * quantityScale;
 
   const isFav = useIsFavorite()(id);
   const lastIsFav = useRef(isFav);
@@ -87,12 +97,23 @@ export const Recipe = memo(({
       <RecipeTraits recipe={recipe}/>
       {effectiveHeaderAction}
       {balanceBias < 0 && <span className='recipe_spacer'/>}
-      <RecipeResult recipe={recipe}/>
+      <RecipeResult
+        recipe={recipe}
+        resultQty={resultQty}
+      />
       {balanceBias > 0 && <span className='recipe_spacer'/>}
       {canFavorite && <FavoriteButton id={id}/>}
       {canExplore && <ExploreButton id={id}/>}
     </>;
-  }, [headerAction, balanceBias, canFavorite, canExplore, recipe]);
+  }, [
+    headerAction,
+    balanceBias,
+    canFavorite,
+    canExplore,
+    recipe,
+    quantityScale,
+    resultQty,
+  ]);
 
   let fullClassName = 'recipe';
   if (isFav && canFavorite) {
@@ -115,13 +136,18 @@ export const Recipe = memo(({
         {visible && title}
       </div>
       {recipe.method === 'construct' ? (
-        <RecipeInstructions visible={visible} steps={recipe.steps}/>
+        <RecipeInstructions
+          visible={visible}
+          steps={recipe.steps}
+          quantityScale={quantityScale}
+        />
       ) : (
         <RecipeIngredients
           visible={visible}
           solids={recipe.solids}
           reagents={recipe.reagents}
           reagentContainerName={reagentContainerName}
+          quantityScale={quantityScale}
         />
       )}
       <RecipeMethod recipe={recipe}/>

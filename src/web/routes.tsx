@@ -18,6 +18,11 @@ export const AppRoutes = [
         handle: { name: 'recipe-list' } satisfies RouteHandle,
       },
       {
+        path: '/drinks',
+        element: <RecipeList group='Drinks'/>,
+        handle: { name: 'drink-list' } satisfies RouteHandle,
+      },
+      {
         path: '/combinations',
         element: <FoodSequences/>,
         handle: { name: 'food-sequence' } satisfies RouteHandle,

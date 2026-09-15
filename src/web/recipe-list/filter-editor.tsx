@@ -30,7 +30,6 @@ import { InputGroup } from '../input-group';
 import { EntitySprite, RawSprite, ReagentSprite } from '../sprites';
 import { Tooltip } from '../tooltip';
 import { DisplayMethod } from '../types';
-import { useUrl } from '../url';
 import {
   IngredientMode,
   RecipeFilter,
@@ -48,6 +47,8 @@ export interface Props {
   filter: RecipeFilter;
   setFilter: Dispatch<SetStateAction<RecipeFilter>>;
   search: string;
+  targetUrl: string;
+  showGroupFilter: boolean;
 }
 
 type Updater = (draft: Draft<RecipeFilter>) => void;
@@ -57,6 +58,8 @@ export const FilterEditor = memo(({
   filter,
   search,
   setFilter,
+  targetUrl,
+  showGroupFilter,
 }: Props): ReactElement => {
   const updateFilter = useCallback((updater: Updater) => {
     setFilter(filter => produce(filter, updater));
@@ -98,9 +101,9 @@ export const FilterEditor = memo(({
         </Tooltip>
       </div>
       <ModeOption filter={filter} update={updateFilter}/>
-      <GroupFilter filter={filter} update={updateFilter}/>
+      {showGroupFilter && <GroupFilter filter={filter} update={updateFilter}/>}
       <TraitFilter filter={filter} update={updateFilter}/>
-      <FilterExport filter={filter} search={search}/>
+      <FilterExport filter={filter} search={search} targetUrl={targetUrl}/>
     </div>
   </>;
 });
@@ -606,25 +609,25 @@ const IngredientToolbar = ({
 interface FilterExportProps {
   filter: RecipeFilter;
   search: string;
+  targetUrl: string;
 }
 
 const FilterExport = ({
   filter,
   search,
+  targetUrl,
 }: FilterExportProps): ReactElement => {
-  const url = useUrl();
-
   const getFilterAndSearch = () => {
     const query = saveFilterToUrl(filter);
     if (search.trim()) {
       query.set(SearchParamName, search.trim());
     }
-    return location.origin + url.withSearchParams(url.recipes, query);
+    return location.origin + withSearchParams(targetUrl, query);
   };
 
   const getFilterOnly = () => {
     const query = saveFilterToUrl(filter);
-    return location.origin + url.withSearchParams(url.recipes, query);
+    return location.origin + withSearchParams(targetUrl, query);
   };
 
   const getSearchOnly = () => {
@@ -632,7 +635,7 @@ const FilterExport = ({
     if (search.trim()) {
       query.set(SearchParamName, search.trim());
     }
-    return location.origin + url.withSearchParams(url.recipes, query);
+    return location.origin + withSearchParams(targetUrl, query);
   };
 
   return (
@@ -664,4 +667,12 @@ const FilterExport = ({
       </CopyToClipboardButton>
     </div>
   );
+};
+
+const withSearchParams = (url: string, query: URLSearchParams): string => {
+  const value = query.toString();
+  if (!value) {
+    return url;
+  }
+  return `${url}${url.includes('?') ? '&' : '?'}${value}`;
 };

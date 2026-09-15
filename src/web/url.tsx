@@ -9,6 +9,7 @@ import { useSearchParams } from 'react-router';
 
 export interface UrlGenerator {
   readonly recipes: string;
+  readonly drinks: string;
 
   readonly foodSequence: string;
 
@@ -45,6 +46,7 @@ export const UrlProvider = ({ children }: UrlProviderProps): ReactElement => {
   const [query] = useSearchParams();
   const urlGenerator = useMemo<UrlGenerator>(() => ({
     recipes: withFork('/', query),
+    drinks: withFork('/drinks', query),
 
     foodSequence: withFork('/combinations', query),
 

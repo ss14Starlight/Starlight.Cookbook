@@ -14,6 +14,7 @@ import {
   SolutionContainerManagerComponent,
   SolutionSpikerComponent,
   SolutionManagerComponent,
+  SpawnItemsOnUseComponent,
   SpriteComponent,
   StomachComponent,
   ToolRefinableComponent,
@@ -89,6 +90,7 @@ const InitialState: ResolvedEntity = {
   reagents: new Set(),
   extractable: null,
   spiker: null,
+  spawnItemsOnUse: null,
   foodSequenceStart: null,
   foodSequenceElement: null,
   sliceableFood: null,
@@ -157,6 +159,9 @@ const beginResolveEntity = (
         case 'SolutionSpiker':
           resolveSolutionSpiker(draft, comp);
           break;
+        case 'SpawnItemsOnUse':
+          resolveSpawnItemsOnUse(draft, comp);
+          break;
         case 'Sprite':
           resolveSprite(draft, comp);
           break;
@@ -179,6 +184,15 @@ const beginResolveEntity = (
   }
 
   return draft;
+};
+
+const resolveSpawnItemsOnUse = (
+  draft: Draft<ResolvedEntity>,
+  comp: SpawnItemsOnUseComponent
+): void => {
+  if (comp.items != null) {
+    draft.spawnItemsOnUse = comp.items as Draft<EntitySpawnEntry[]>;
+  }
 };
 
 const resolveVendingMachine = (

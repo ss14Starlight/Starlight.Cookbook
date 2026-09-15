@@ -72,6 +72,15 @@ export interface ReagentPrototype extends PlainObject {
   // Frequently declared on a base prototype rather than the reagent itself,
   // so read this only after `flattenInheritance` has run.
   readonly group?: string;
+  readonly metamorphicSprite?: ReagentSpriteSpecifier;
+  readonly metamorphicMaxFillLevels?: number;
+  readonly metamorphicFillBaseName?: string;
+  readonly metamorphicChangeColor?: boolean;
+}
+
+export interface ReagentSpriteSpecifier {
+  readonly sprite: string;
+  readonly state: string;
 }
 
 export interface MicrowaveMealRecipe extends PlainObject {

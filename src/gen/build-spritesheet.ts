@@ -1,7 +1,12 @@
 import { Jimp, JimpInstance, cssColorToHex } from 'jimp';
 import { existsSync, readFileSync } from 'node:fs';
 import { join as joinPath, resolve } from 'node:path';
-import { CookingMethod, SpriteAttribution, SpritePoint } from '../types';
+import {
+  CookingMethod,
+  ReagentSourceMethod,
+  SpriteAttribution,
+  SpritePoint,
+} from '../types';
 import { ColorWhite } from './constants';
 import { readFileTextWithoutTheStupidBOM } from './helpers';
 import { ResolvedGameData } from './resolve-prototypes';
@@ -12,7 +17,11 @@ export interface SpriteSheetData {
   readonly spriteCount: number;
   readonly sheet: JimpInstance;
   readonly points: ReadonlyMap<string, SpritePoint>;
-  readonly methods: ReadonlyMap<CookingMethod, SpritePoint>;
+  readonly reagentPoints: ReadonlyMap<string, SpritePoint>;
+  readonly methods: ReadonlyMap<
+    CookingMethod | ReagentSourceMethod,
+    SpritePoint
+  >;
   readonly beakerFillPoint: SpritePoint;
   /** Frontier */
   readonly microwaveRecipeTypes?: ReadonlyMap<string, SpritePoint>;
@@ -24,6 +33,7 @@ export type SpriteOffsets = Map<string, SpritePoint>;
 interface SpriteCollection {
   readonly spritesByKey: Map<string, DrawableSprite>;
   readonly entityToSpriteKey: Map<string, string>;
+  readonly reagentToSpriteKey: Map<string, string>;
   readonly beakerFillKey: string;
 }
 
@@ -49,6 +59,15 @@ const SheetWidth = 24; // sprites across
 
 const ZeroOffset: SpritePoint = [0, 0];
 
+const DefaultMetamorphicGlass = {
+  path: 'Objects/Consumable/Drinks/glass_clear.rsi',
+  state: 'icon',
+  maxFillLevels: 9,
+  fillBaseName: 'fill-',
+  changeColor: true,
+  overlayState: 'icon-front',
+} as const;
+
 export const buildSpriteSheet = async (
   resolved: ResolvedGameData,
   textureDir: string,
@@ -58,6 +77,7 @@ export const buildSpriteSheet = async (
   const {
     spritesByKey,
     entityToSpriteKey,
+    reagentToSpriteKey,
     beakerFillKey,
   } = collectSprites(resolved, mixFillState, spriteOffsets);
   const spriteCount = spritesByKey.size;
@@ -85,7 +105,13 @@ export const buildSpriteSheet = async (
     )
   );
 
-  const methods = new Map<CookingMethod, SpritePoint>(
+  const reagentPoints = new Map(
+    Array.from(reagentToSpriteKey, ([id, key]) =>
+      [id, spritePoints.get(key)!] as const
+    )
+  );
+
+  const methods = new Map<CookingMethod | ReagentSourceMethod, SpritePoint>(
     Array.from(resolved.methodEntities, ([method, { id }]) =>
       [method, spritePoints.get(entityToSpriteKey.get(id)!)!] as const
     )
@@ -104,6 +130,7 @@ export const buildSpriteSheet = async (
     spriteCount,
     sheet,
     points: entityPoints,
+    reagentPoints,
     methods,
     beakerFillPoint: spritePoints.get(beakerFillKey)!,
     microwaveRecipeTypes,
@@ -121,9 +148,46 @@ const collectSprites = (
   // Maps an entity to its corresponding sprite key.
   // Translated later to a sprite point.
   const entityToSpriteKey = new Map<string, string>();
+  const reagentToSpriteKey = new Map<string, string>();
 
   for (const entity of resolved.entities.values()) {
     tryCollectSprite(entity, spritesByKey, entityToSpriteKey, spriteOffsets);
+  }
+
+  for (const [id, reagent] of resolved.reagents) {
+    const metamorphic = reagent.metamorphicSprite ?? (
+      reagent.group === 'Drinks' ? DefaultMetamorphicGlass : undefined
+    );
+    if (!metamorphic) {
+      continue;
+    }
+
+    const layers: DrawableLayer[] = [{
+      path: metamorphic.path,
+      state: metamorphic.state,
+      color: ColorWhite,
+    }];
+    if (metamorphic.maxFillLevels > 0 && metamorphic.fillBaseName) {
+      layers.push({
+        path: metamorphic.path,
+        state: `${metamorphic.fillBaseName}${metamorphic.maxFillLevels}`,
+        color: metamorphic.changeColor
+          ? cssColorToHex(reagent.color)
+          : ColorWhite,
+      });
+    }
+    if (metamorphic.overlayState) {
+      layers.push({
+        path: metamorphic.path,
+        state: metamorphic.overlayState,
+        color: ColorWhite,
+      });
+    }
+
+    const sprite: DrawableSprite = { offset: ZeroOffset, layers };
+    const key = drawableSpriteKey(sprite);
+    spritesByKey.set(key, sprite);
+    reagentToSpriteKey.set(id, key);
   }
 
   for (const entity of resolved.methodEntities.values()) {
@@ -155,6 +219,7 @@ const collectSprites = (
   return {
     spritesByKey,
     entityToSpriteKey,
+    reagentToSpriteKey,
     beakerFillKey,
   };
 };
@@ -405,33 +470,27 @@ class SpriteCache {
     // fudged the PNG reading a bit here.
     //
     // Basically: If the PNG reader throws an error with the exact message
-    // "unrecognised content at end of stream", then we shave one (1) byte off
-    // the end of the buffer and try again, up to 4 bytes. In practice it seems
-    // the stream tends to contain 2 extra bytes; I'm guessing whatever program
-    // people are using to save their PNGs pads the file size up to a multiple
-    // of 4.
+    // "unrecognised content at end of stream", walk the PNG chunks and trim
+    // everything after the real IEND chunk before trying again.
     const MagicErrorMessage = 'unrecognised content at end of stream';
 
-    let buffer = readFileSync(fullPath);
-    let bytesStripped = 0;
-    for (;;) {
-      // This is so dumb.
-      try {
-        return await Jimp.fromBuffer(buffer) as JimpInstance;
-      } catch (e) {
-        if (
-          !(e instanceof Error) || // not an error
-          e.message !== MagicErrorMessage || // wrong message
-          bytesStripped === 4 // too many attempts, idgaf
-        ) {
-          throw e;
-        }
-
-        buffer = buffer.subarray(0, buffer.length - 1);
-        bytesStripped++;
-
-        console.log(`${fullPath}: trimming buffer (${bytesStripped} B)`);
+    const buffer = readFileSync(fullPath);
+    try {
+      return await Jimp.fromBuffer(buffer) as JimpInstance;
+    } catch (e) {
+      if (!(e instanceof Error) || e.message !== MagicErrorMessage) {
+        throw e;
       }
+
+      const trimmed = trimPngAfterIend(buffer);
+      if (trimmed.length === buffer.length) {
+        throw e;
+      }
+
+      console.log(
+        `${fullPath}: trimming buffer (${buffer.length - trimmed.length} B)`
+      );
+      return await Jimp.fromBuffer(trimmed) as JimpInstance;
     }
   }
 
@@ -487,3 +546,21 @@ class SpriteCache {
     return attribution;
   }
 }
+
+const trimPngAfterIend = (buffer: Buffer): Buffer => {
+  // Eight-byte PNG signature, then length/type/data/CRC chunks.
+  let offset = 8;
+  while (offset + 12 <= buffer.length) {
+    const dataLength = buffer.readUInt32BE(offset);
+    const type = buffer.toString('ascii', offset + 4, offset + 8);
+    const chunkEnd = offset + 12 + dataLength;
+    if (chunkEnd > buffer.length) {
+      return buffer;
+    }
+    if (type === 'IEND') {
+      return buffer.subarray(0, chunkEnd);
+    }
+    offset = chunkEnd;
+  }
+  return buffer;
+};

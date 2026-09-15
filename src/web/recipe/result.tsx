@@ -6,10 +6,13 @@ import { Tooltip } from '../tooltip';
 
 export interface RecipeResultProps {
   recipe: Recipe;
+  /** Override the recipe's normal output quantity for a scaled display. */
+  resultQty?: number;
 }
 
 export const RecipeResult = memo(({
   recipe,
+  resultQty: resultQtyOverride,
 }: RecipeResultProps): ReactElement => {
   const { entityMap, reagentMap } = useGameData();
 
@@ -19,7 +22,7 @@ export const RecipeResult = memo(({
   const reagentResult = recipe.reagentResult
     ? reagentMap.get(recipe.reagentResult)
     : undefined;
-  const resultQty = recipe.resultQty ?? 1;
+  const resultQty = resultQtyOverride ?? recipe.resultQty ?? 1;
 
   if (solidResult) {
     return (
@@ -40,7 +43,7 @@ export const RecipeResult = memo(({
     const { id: resultId, name: resultName } = reagentResult;
     return (
       <span className='recipe_result'>
-        <ReagentSprite id={resultId}/>
+        <ReagentSprite id={resultId} glass/>
         <span className='recipe_name'>
           {resultName}
         </span>
@@ -50,7 +53,7 @@ export const RecipeResult = memo(({
               resultQty
             }u ${
               resultName
-            } with the amounts shown. You can make larger or smaller batches as long as the ratio stays the same.`
+            } with the amounts shown.`
           }
         >
           <span className='recipe_result-qty'>

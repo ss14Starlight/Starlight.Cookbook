@@ -62,7 +62,7 @@ export const findIngredients = (
           const sourceIngredient = resolveIngredient(
             result,
             'solid',
-            source.entity,
+            source.type === 'vending' ? source.container : source.entity,
             false
           );
           sourceIngredient.sourceOfReagent.add(reagentId);

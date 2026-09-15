@@ -21,6 +21,11 @@ const HeaderTabs: readonly HeaderTab[] = [
     label: 'All Recipes',
   },
   {
+    id: 'drink-list',
+    target: url => url.drinks,
+    label: 'Drinks',
+  },
+  {
     id: 'food-sequence',
     target: url => url.foodSequence,
     label: 'Combinations',

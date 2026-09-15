@@ -39,6 +39,7 @@ import {
   ResolvedEntity,
   ResolvedEntitySource,
   ResolvedEntityMap,
+  ResolvedReagentEntitySource,
   ResolvedReagentSource,
   ResolvedSpecialRecipe,
 } from './types';
@@ -158,12 +159,15 @@ export const filterRelevantPrototypes = (
     params.forceIncludeReagentSources
   );
 
-  // Vending stock is another way to obtain ingredients that have no recipe.
-  // Keep it as source metadata rather than inventing fake cooking recipes.
+  // Vending stock is another way to obtain ingredients, including ingredients
+  // that can also be created. Keep it as source metadata rather than inventing
+  // fake cooking recipes.
   const entitySources = collectVendingSources(
     raw.vendingMachineInventories,
     allEntities,
-    usedEntities
+    usedEntities,
+    usedReagents,
+    reagentSources
   );
 
   // We know the total set of relevant entities now, so we'll use that
@@ -212,31 +216,97 @@ export const filterRelevantPrototypes = (
 const collectVendingSources = (
   inventories: VendingMachineInventoryMap,
   allEntities: ResolvedEntityMap,
-  usedEntities: Set<EntityId>
+  usedEntities: Set<EntityId>,
+  usedReagents: Set<ReagentId>,
+  reagentSources: Map<ReagentId, ResolvedReagentSource[]>
 ): Map<EntityId, ResolvedEntitySource[]> => {
   const result = new Map<EntityId, ResolvedEntitySource[]>();
   const relevantItems = new Set(usedEntities);
   const sourceVendors = new Set<EntityId>();
+
+  const addEntitySource = (
+    item: EntityId,
+    vendor: EntityId,
+    stock: VendingStock,
+    container?: EntityId
+  ): void => {
+    let sources = result.get(item);
+    if (!sources) {
+      sources = [];
+      result.set(item, sources);
+    }
+    if (!sources.some(s =>
+      s.vendor === vendor && s.stock === stock && s.container === container
+    )) {
+      sources.push({ type: 'vending', vendor, stock, container });
+    }
+  };
+
+  const addReagentSource = (
+    reagent: ReagentId,
+    container: EntityId,
+    vendor: EntityId,
+    stock: VendingStock
+  ): void => {
+    const source: ResolvedReagentSource = {
+      type: 'vending',
+      container,
+      vendor,
+      stock,
+    };
+    const sources = reagentSources.get(reagent);
+    if (sources?.some(s =>
+      s.type === 'vending' &&
+      s.container === container && s.vendor === vendor && s.stock === stock
+    )) {
+      return;
+    }
+    appendAtKey(reagentSources, reagent, source);
+  };
 
   const addStock = (
     vendor: EntityId,
     stock: VendingStock,
     entries: Readonly<Record<EntityId, number>> | undefined
   ): void => {
-    for (const item of Object.keys(entries ?? {}) as EntityId[]) {
-      if (!relevantItems.has(item)) {
+    for (const vendedId of Object.keys(entries ?? {}) as EntityId[]) {
+      const vended = allEntities.get(vendedId);
+      if (!vended || vended.abstract) {
         continue;
       }
 
-      let sources = result.get(item);
-      if (!sources) {
-        sources = [];
-        result.set(item, sources);
+      let providesRelevantContent = false;
+      if (relevantItems.has(vendedId)) {
+        addEntitySource(vendedId, vendor, stock);
+        providesRelevantContent = true;
       }
-      if (!sources.some(s => s.vendor === vendor && s.stock === stock)) {
-        sources.push({ type: 'vending', vendor, stock });
+
+      for (const spawned of vended.spawnItemsOnUse ?? []) {
+        if (
+          spawned.id &&
+          relevantItems.has(spawned.id) &&
+          !spawned.orGroup &&
+          (spawned.amount ?? 1) > 0 &&
+          (spawned.prob ?? 1) === 1
+        ) {
+          addEntitySource(spawned.id, vendor, stock, vendedId);
+          providesRelevantContent = true;
+        }
       }
-      sourceVendors.add(vendor);
+
+      for (const reagent of findContainedReagents(vended, allEntities)) {
+        if (usedReagents.has(reagent)) {
+          addReagentSource(reagent, vendedId, vendor, stock);
+          providesRelevantContent = true;
+        }
+      }
+
+      if (providesRelevantContent) {
+        // The package and machine both need names and sprites in the web data.
+        usedEntities.add(vendedId);
+        addEntitySource(vendedId, vendor, stock);
+        sourceVendors.add(vendor);
+      }
     }
   };
 
@@ -260,6 +330,50 @@ const collectVendingSources = (
 
   for (const vendor of sourceVendors) {
     usedEntities.add(vendor);
+  }
+  return result;
+};
+
+const findContainedReagents = (
+  entity: ResolvedEntity,
+  allEntities: ResolvedEntityMap,
+  visited = new Set<EntityId>(),
+  requireTransfer = true
+): Set<ReagentId> => {
+  const result = new Set<ReagentId>();
+  // Food entities also carry solutions, but their contents are not generally
+  // available as loose recipe reagents. SolutionTransfer marks an actual
+  // container whose contents can be poured or transferred out.
+  if (requireTransfer && !entity.components.has('SolutionTransfer')) {
+    return result;
+  }
+  if (visited.has(entity.id)) {
+    return result;
+  }
+  visited.add(entity.id);
+
+  const addSolution = (solution: Solution | undefined | null): void => {
+    for (const reagent of solution?.reagents ?? []) {
+      result.add(reagent.ReagentId);
+    }
+  };
+
+  addSolution(entity.solutions?.ownSolution);
+  for (const solution of Object.values(entity.solutions?.legacy ?? {})) {
+    addSolution(solution);
+  }
+  for (const spawned of entity.solutions?.spawned ?? []) {
+    const solutionEntity = allEntities.get(spawned);
+    if (solutionEntity) {
+      for (const reagent of findContainedReagents(
+        solutionEntity,
+        allEntities,
+        visited,
+        false
+      )) {
+        result.add(reagent);
+      }
+    }
   }
   return result;
 };
@@ -864,11 +978,16 @@ const tryAddReaction = (
   }
 
   const needsReaction =
-    // We need this reaction if anything uses the reagent it produces...
+    // Keep every drink-producing reaction so the cookbook can provide a
+    // complete drinks catalogue. Otherwise, keep food-related reagent
+    // reactions only when another recipe uses their result.
     (
       reagentResult &&
-      usedReagents.has(reagentResult[0]) &&
-      isFoodRelatedReagent(allReagents.get(reagentResult[0])!)
+      isFoodRelatedReagent(allReagents.get(reagentResult[0])!) &&
+      (
+        usedReagents.has(reagentResult[0]) ||
+        allReagents.get(reagentResult[0])!.group === 'Drinks'
+      )
     ) ||
     // ... or if anything uses the *solid* it produces.
     solidResult && usedEntities.has(solidResult);
@@ -877,6 +996,10 @@ const tryAddReaction = (
   }
 
   reactions.set(reaction.id, reaction);
+
+  if (reagentResult) {
+    usedReagents.add(reagentResult[0]);
+  }
 
   // Now we must go through this reaction's reactants, and add any that haven't
   // already been added by a recipe or other reaction. If we add new reagents,
@@ -1004,12 +1127,12 @@ const collectReagentSources = (
 
   const addSource = (
     reagentId: ReagentId,
-    source: ResolvedReagentSource
+    source: ResolvedReagentEntitySource
   ): void => {
     const existing = result.get(reagentId);
     // An entity can yield the same reagent from both its grind and its juice
     // solution -- cocoa beans do -- so dedupe on the pair, not the entity.
-    if (existing?.some(s =>
+    if (existing?.some(s => s.type !== 'vending' &&
       s.entity === source.entity && s.method === source.method
     )) {
       return;
@@ -1029,12 +1152,12 @@ const collectReagentSources = (
     );
     if (sourceOf && sourceOf.length > 0) {
       usedEntities.add(entity.id);
-      for (const { reagentId, method } of sourceOf) {
+      for (const { reagentId, method, amount } of sourceOf) {
         if (ignoreSourcesOf.has(reagentId)) {
           continue;
         }
 
-        addSource(reagentId, { entity: entity.id, method });
+        addSource(reagentId, { entity: entity.id, method, amount });
       }
     }
   }
@@ -1058,6 +1181,7 @@ const collectReagentSources = (
 interface GrindableReagent {
   readonly reagentId: ReagentId;
   readonly method: ReagentSourceMethod;
+  readonly amount: number;
 }
 
 const findGrindableProduceReagents = (
@@ -1095,7 +1219,11 @@ const findGrindableProduceReagents = (
   return foundSolutions.flatMap(([solution, method]) =>
     solution.reagents!
       .filter(reagent => usedReagents.has(reagent.ReagentId))
-      .map(reagent => ({ reagentId: reagent.ReagentId, method }))
+      .map(reagent => ({
+        reagentId: reagent.ReagentId,
+        method,
+        amount: reagent.Quantity,
+      }))
   );
 };
 

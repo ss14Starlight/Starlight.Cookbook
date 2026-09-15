@@ -908,6 +908,41 @@ select {
       cursor: help;
     }
 
+.recipe-scale {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 100;
+  padding: 8px 10px;
+  border: 2px solid var(--input-border);
+  border-radius: 7px;
+  font-weight: 600;
+  color: var(--input-fg);
+  background-color: var(--input-bg);
+  box-shadow: var(--shadow-basic);
+
+  > input {
+    box-sizing: border-box;
+    width: 4.5em;
+    padding: 3px 5px;
+    border: 1px solid var(--input-border);
+    border-radius: 4px;
+    outline: 0;
+    font: inherit;
+    text-align: right;
+    color: inherit;
+    background: transparent;
+
+    &:focus {
+      border-color: var(--focus-color);
+      box-shadow: 0 0 0 1px var(--focus-color);
+    }
+  }
+}
+
   .recipe_spacer {
     flex: 0 10000 36px;
     margin-right: -2px;
@@ -2250,31 +2285,6 @@ select {
       align-self: center;
       max-width: none;
     }
-
-  .popup_reagent-source,
-  .popup_entity-source {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 8px 12px;
-    max-width: 300px;
-    border-radius: 7px;
-    background-color: var(--tooltip-bg);
-    color: var(--tooltip-fg);
-    box-shadow: 0 3px 7px var(--shadow-color);
-  }
-
-    .reagent-source,
-    .entity-source {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
-      .reagent-source_verb,
-      .entity-source_verb {
-        font-weight: 500;
-      }
 
   .popup_foodseq {
     padding: 8px 12px;

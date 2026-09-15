@@ -43,6 +43,8 @@ starlight:
     heatMixture: ChemistryHotplate
     stir: Spoon
     shake: DrinkShaker
+    grind: KitchenReagentGrinder
+    juice: KitchenReagentGrinder
     construct: ClothingHeadHatChef # general recipes
     # Deep frying, supported in two flavours: Frontier's `DeepFrySpawn`
     # component, and the `deepFryingRecipe` prototype that Starlight took from
@@ -132,6 +134,11 @@ starlight:
       hint: "Avali can eat this food."
       filterName: "Avali-edible"
       filterSummary: "avali-edible"
+    - organ: OrganDollStomach
+      color: "#fffff0"
+      hint: "Dolls can eat this food."
+      filterName: "Doll-edible"
+      filterSummary: "doll-edible"
   # Special reagents!
   # Any food containing the reagents listed here will be highlighted.
   # Optional. Default value: []

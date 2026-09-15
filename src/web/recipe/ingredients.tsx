@@ -13,6 +13,8 @@ export interface RecipeIngredientsProps {
   reagents: Readonly<Record<string, ReagentIngredientData>>;
   /** If set, tells the user that the listed reagents go in this container. */
   reagentContainerName?: string;
+  /** Multiplier applied to reagent amounts. */
+  quantityScale?: number;
 }
 
 const IngredientSpriteHeight = 32;
@@ -23,6 +25,7 @@ export const RecipeIngredients = memo(({
   solids,
   reagents,
   reagentContainerName,
+  quantityScale = 1,
 }: RecipeIngredientsProps): ReactElement => {
   if (!visible) {
     const ingredientCount =
@@ -48,7 +51,9 @@ export const RecipeIngredients = memo(({
       <ReagentIngredient
         key={reagentId}
         id={reagentId}
-        amount={ingredient.amount}
+        amount={ingredient.catalyst
+          ? ingredient.amount
+          : scaleAmount(ingredient.amount, quantityScale)}
         catalyst={ingredient.catalyst}
       />
     );
@@ -56,7 +61,11 @@ export const RecipeIngredients = memo(({
   return (
     <div className='recipe_ingredients'>
       {Object.entries(solids).map(([entId, qty]) =>
-        <SolidIngredient key={entId} id={entId} qty={qty}/>
+        <SolidIngredient
+          key={entId}
+          id={entId}
+          qty={scaleAmount(qty, quantityScale)}
+        />
       )}
       {reagentContainerName ? (
         <div className='recipe_reagent-group'>
@@ -69,6 +78,12 @@ export const RecipeIngredients = memo(({
     </div>
   );
 });
+
+export const scaleAmount = (amount: number, scale: number): number =>
+  Math.round(amount * scale * 1000) / 1000;
+
+export const formatAmount = (amount: number): string =>
+  String(scaleAmount(amount, 1));
 
 export interface SolidIngredientProps {
   id: string;
@@ -87,7 +102,7 @@ export const SolidIngredient = ({
     <span className='recipe_ingredient'>
       <EntitySprite id={id}/>
       <span>
-        {qty != null ? `${qty} ` : null}
+        {qty != null ? `${formatAmount(qty)} ` : null}
         {relatedRecipes ? (
           <RecipePopup id={relatedRecipes}>
             <span className='more-info'>
@@ -95,7 +110,7 @@ export const SolidIngredient = ({
             </span>
           </RecipePopup>
         ) : entity.sources && entity.sources.length > 0 ? (
-          <EntitySourcePopup sources={entity.sources}>
+          <EntitySourcePopup resultId={id} sources={entity.sources}>
             <span className='more-info'>
               {entity.name}
             </span>
@@ -123,8 +138,8 @@ export const ReagentIngredient = ({
   const relatedRecipes = recipesByReagentResult.get(id);
 
   const formattedAmount = typeof amount === 'number'
-    ? `${amount}u `
-    : `${amount[0]}–${amount[1]}u `;
+    ? `${formatAmount(amount)}u `
+    : `${formatAmount(amount[0])}–${formatAmount(amount[1])}u `;
 
   return (
     <span className='recipe_ingredient'>
@@ -137,13 +152,20 @@ export const ReagentIngredient = ({
           * both, since the recipe already names the entity it comes from.
           */}
         {relatedRecipes ? (
-          <RecipePopup id={relatedRecipes}>
+          <RecipePopup
+            id={relatedRecipes}
+            targetResultQty={typeof amount === 'number' ? amount : undefined}
+          >
             <span className='more-info'>
               {reagent.name}
             </span>
           </RecipePopup>
         ) : reagent.sources.length > 0 ? (
-          <ReagentSourcePopup sources={reagent.sources}>
+          <ReagentSourcePopup
+            resultId={id}
+            targetResultQty={typeof amount === 'number' ? amount : undefined}
+            sources={reagent.sources}
+          >
             <span className='more-info'>
               {reagent.name}
             </span>

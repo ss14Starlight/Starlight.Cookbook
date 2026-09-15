@@ -75,6 +75,7 @@ export const saveData = async (
         id,
         name: reagent.name,
         color: reagent.color,
+        sprite: d.sprites.reagentPoints.get(id),
         sources: d.resolved.reagentSources.get(id) ?? [],
       });
     }

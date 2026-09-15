@@ -1,7 +1,7 @@
 import { FluentBundle, FluentResource } from '@fluent/bundle';
 import { globSync } from 'glob';
 import { resolve } from 'node:path';
-import { CookingMethod } from '../types';
+import { CookingMethod, ReagentSourceMethod } from '../types';
 import {
   DefaultCookTime,
   DefaultRecipeGroup,
@@ -16,6 +16,7 @@ import {
   Reactant,
   ReactionPrototype,
   ReagentId,
+  ReagentMap,
 } from './prototypes';
 import { getReagentResult, getSolidResult } from './reaction-helpers';
 import {
@@ -30,13 +31,18 @@ import {
   ResolvedRecipe,
 } from './types';
 
+const DrinkRecipeResultQty = 30;
+
 export interface ResolvedGameData {
   readonly entities: ResolvedEntityMap;
   readonly reagents: ResolvedReagentMap;
   readonly recipes: ReadonlyMap<string, ResolvedRecipe>;
   readonly reagentSources: ReadonlyMap<ReagentId, readonly ResolvedReagentSource[]>;
   readonly entitySources: ReadonlyMap<EntityId, readonly ResolvedEntitySource[]>;
-  readonly methodEntities: ReadonlyMap<CookingMethod, ResolvedEntity>;
+  readonly methodEntities: ReadonlyMap<
+    CookingMethod | ReagentSourceMethod,
+    ResolvedEntity
+  >;
   /** Frontier */
   readonly microwaveRecipeTypeEntities: ReadonlyMap<string, ResolvedEntity> | undefined;
 }
@@ -78,7 +84,10 @@ export const resolvePrototypes = (
     recipes.set(id, recipe);
   }
 
-  for (const [id, recipe] of reactionRecipes(filtered.reactions)) {
+  for (const [id, recipe] of reactionRecipes(
+    filtered.reactions,
+    filtered.reagents
+  )) {
     recipes.set(id, recipe);
   }
 
@@ -90,17 +99,30 @@ export const resolvePrototypes = (
     reagents.set(reagent.id, {
       name,
       color: reagent.color ?? '#ffffff',
+      group: reagent.group,
+      metamorphicSprite: reagent.metamorphicSprite
+        ? {
+          path: reagent.metamorphicSprite.sprite,
+          state: reagent.metamorphicSprite.state,
+          maxFillLevels: reagent.metamorphicMaxFillLevels ?? 0,
+          fillBaseName: reagent.metamorphicFillBaseName,
+          changeColor: reagent.metamorphicChangeColor ?? true,
+        }
+        : undefined,
     });
   }
 
-  const resolvedMethodEntities = new Map<CookingMethod, ResolvedEntity>();
+  const resolvedMethodEntities = new Map<
+    CookingMethod | ReagentSourceMethod,
+    ResolvedEntity
+  >();
   for (const [method, id] of Object.entries(methodEntities)) {
     if (id === null) {
       // Unsupported cooking method on this fork, skip it.
       continue;
     }
     resolvedMethodEntities.set(
-      method as CookingMethod,
+      method as CookingMethod | ReagentSourceMethod,
       allEntities.get(id)!
     );
   }
@@ -177,11 +199,22 @@ const convertMicrowaveReagents = (
 };
 
 function* reactionRecipes(
-  reactions: readonly ReactionPrototype[]
+  reactions: readonly ReactionPrototype[],
+  reagents: ReagentMap
 ): Generator<[string, ResolvedRecipe]> {
   for (const reaction of reactions) {
     const reagentResult = getReagentResult(reaction);
     const solidResult = getSolidResult(reaction);
+    const group = reagentResult
+      ? reagents.get(reagentResult[0])?.group ?? DefaultRecipeGroup
+      : DefaultRecipeGroup;
+    const originalResultQty = reagentResult?.[1] ?? 1;
+    const resultQty = group === 'Drinks' && reagentResult
+      ? DrinkRecipeResultQty
+      : originalResultQty;
+    const reactants = resultQty === originalResultQty
+      ? reaction.reactants
+      : scaleReactants(reaction.reactants, resultQty / originalResultQty);
     // Add an arbitrary prefix to prevent collisions.
     const id = `r!${reaction.id}`;
 
@@ -195,16 +228,16 @@ function* reactionRecipes(
           continue;
         }
 
-        const recipe = new ConstructRecipeBuilder();
+        const recipe = new ConstructRecipeBuilder(group);
         if (reagentResult) {
           recipe
             .withReagentResult(reagentResult[0])
-            .withResultQty(reagentResult[1]);
+            .withResultQty(resultQty);
         } else {
           recipe.withSolidResult(solidResult!);
         }
 
-        recipe.mix(reaction.reactants);
+        recipe.mix(reactants);
         if (reaction.minTemp) {
           recipe.heatMixture(reaction.minTemp, reaction.maxTemp);
         }
@@ -217,15 +250,27 @@ function* reactionRecipes(
         method: 'mix',
         solidResult,
         reagentResult: reagentResult?.[0] ?? null,
-        resultQty: reagentResult?.[1] ?? 1,
+        resultQty,
         minTemp: reaction.minTemp ?? 0,
         maxTemp: reaction.maxTemp && isFinite(reaction.maxTemp)
           ? reaction.maxTemp
           : null,
-        reagents: reaction.reactants,
+        reagents: reactants,
         solids: {},
-        group: DefaultRecipeGroup,
+        group,
       }];
     }
   }
 }
+
+const scaleReactants = (
+  reactants: Readonly<Record<string, Reactant>>,
+  factor: number
+): Record<string, Reactant> => Object.fromEntries(
+  Object.entries(reactants).map(([id, reactant]) => [
+    id,
+    reactant.catalyst
+      ? reactant
+      : { ...reactant, amount: reactant.amount * factor },
+  ])
+);

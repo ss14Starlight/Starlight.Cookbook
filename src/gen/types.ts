@@ -1,5 +1,6 @@
 import {
   ConstructionStep,
+  CookingMethod,
   ConstructVerb,
   ReagentIngredient,
   ReagentSourceMethod,
@@ -16,7 +17,10 @@ import {
   VendingMachineInventoryId,
 } from './prototypes';
 
-export type MethodEntities = Readonly<Record<Recipe['method'], EntityId | null>>;
+export type MethodEntities = Readonly<Partial<Record<
+  CookingMethod | ReagentSourceMethod,
+  EntityId | null
+>>>;
 
 /** Frontier */
 export type MicrowaveRecipeTypes = Readonly<Record<string, MicrowaveRecipeTypeData>>;
@@ -100,6 +104,8 @@ export interface ResolvedEntity {
    * the name of the solution transferred and how to describe the action.
    */
   readonly spiker: ResolvedSpiker | null;
+  /** Items released when this package is opened or used. */
+  readonly spawnItemsOnUse: readonly EntitySpawnEntry[] | null;
   /**
    * If the entity can start a food sequence, contains the food sequence key
    * and maximum layer count.
@@ -267,9 +273,22 @@ export interface ResolvedFoodSequenceElement {
 }
 
 /** Generator-side {@link ReagentSource}, before entity IDs become plain strings. */
-export interface ResolvedReagentSource {
+export type ResolvedReagentSource =
+  | ResolvedReagentEntitySource
+  | ResolvedReagentVendingSource;
+
+export interface ResolvedReagentEntitySource {
+  readonly type?: 'entity';
   readonly entity: EntityId;
   readonly method?: ReagentSourceMethod;
+  readonly amount?: number;
+}
+
+export interface ResolvedReagentVendingSource {
+  readonly type: 'vending';
+  readonly container: EntityId;
+  readonly vendor: EntityId;
+  readonly stock: VendingStock;
 }
 
 /** Generator-side entity source, before entity IDs become plain strings. */
@@ -277,6 +296,7 @@ export interface ResolvedEntitySource {
   readonly type: 'vending';
   readonly vendor: EntityId;
   readonly stock: VendingStock;
+  readonly container?: EntityId;
 }
 
 export type ResolvedReagentMap = ReadonlyMap<ReagentId, ResolvedReagent>;
@@ -285,6 +305,15 @@ export interface ResolvedReagent {
   // The ID is in the owning collection.
   readonly name: string;
   readonly color: string;
+  readonly group?: string;
+  readonly metamorphicSprite?: {
+    readonly path: string;
+    readonly state: string;
+    readonly maxFillLevels: number;
+    readonly fillBaseName?: string;
+    readonly changeColor: boolean;
+    readonly overlayState?: string;
+  };
 }
 
 export type ResolvedRecipe =

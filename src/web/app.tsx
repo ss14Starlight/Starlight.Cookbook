@@ -11,6 +11,7 @@ import { GitHubCommitUrl } from './helpers';
 import { NoticesProvider } from './notices';
 import { PrivacyPolicyLink } from './privacy';
 import { RecipeExplorerProvider } from './recipe-explorer';
+import { RecipeScaleProvider } from './recipe/scale-context';
 import { NoticeData } from './types';
 import { UrlProvider } from './url';
 
@@ -93,45 +94,47 @@ export const App = ({ forks }: Props): ReactElement => {
     <UrlProvider>
       <NoticesProvider all={notices}>
         <GameDataProvider forkId={fork} raw={data}>
-          <ForkProvider fork={fork} allForks={forks} setFork={handleSetFork}>
-            <FavoritesProvider>
-              <RecipeExplorerProvider>
-                <Outlet/>
-              </RecipeExplorerProvider>
-            </FavoritesProvider>
-          </ForkProvider>
-          <footer>
-            <p>
-              {'Recipes generated from commit '}
-              <a href={commitLink} target='_blank' rel='noopener'>
-                {meta.commit.slice(0, 9)}
-              </a>
-              {` on ${formatDate(meta.date)}.`}
-            </p>
-            <p>
-              Made by Alice Heurlin / Arimah, 2024.
-              {' '}
-              Discord: @arimah.
-              {' '}
-              GitHub: <a href='https://github.com/arimah' target='_blank' rel='noopener'>arimah</a>.
-            </p>
-            <p>
-              This is a fork of the above project for Starlight.
-              {' '}
-              GitHub: <a href='https://github.com/ss14Starlight' target='_blank' rel='noopener'>Starlight</a>.
-            </p>
-            <p>
-              {'Sprites were made by many contributors: '}
-              <AttributionsLink value={data.attributions} meta={meta}/>
-              {'.'}
-            </p>
-            <p>
-              <PrivacyPolicyLink/>
-              {' • '}
-              <a href={REPO_URL} target='_blank' rel='noopener'>Source code</a>
-            </p>
-          </footer>
-          <CanonicalRedirect/>
+          <RecipeScaleProvider>
+            <ForkProvider fork={fork} allForks={forks} setFork={handleSetFork}>
+              <FavoritesProvider>
+                <RecipeExplorerProvider>
+                  <Outlet/>
+                </RecipeExplorerProvider>
+              </FavoritesProvider>
+            </ForkProvider>
+            <footer>
+              <p>
+                {'Recipes generated from commit '}
+                <a href={commitLink} target='_blank' rel='noopener'>
+                  {meta.commit.slice(0, 9)}
+                </a>
+                {` on ${formatDate(meta.date)}.`}
+              </p>
+              <p>
+                Made by Alice Heurlin / Arimah, 2024.
+                {' '}
+                Discord: @arimah.
+                {' '}
+                GitHub: <a href='https://github.com/arimah' target='_blank' rel='noopener'>arimah</a>.
+              </p>
+              <p>
+                This is a fork of the above project for Starlight.
+                {' '}
+                GitHub: <a href='https://github.com/ss14Starlight' target='_blank' rel='noopener'>Starlight</a>.
+              </p>
+              <p>
+                {'Sprites were made by many contributors: '}
+                <AttributionsLink value={data.attributions} meta={meta}/>
+                {'.'}
+              </p>
+              <p>
+                <PrivacyPolicyLink/>
+                {' • '}
+                <a href={REPO_URL} target='_blank' rel='noopener'>Source code</a>
+              </p>
+            </footer>
+            <CanonicalRedirect/>
+          </RecipeScaleProvider>
         </GameDataProvider>
       </NoticesProvider>
     </UrlProvider>

@@ -5,12 +5,14 @@ import {
   useEffect,
   useState,
 } from 'react';
-import { EntitySource, VendingStock } from '../../types';
+import { EntitySource } from '../../types';
 import { useGameData } from '../context';
 import { Popup, usePopupTrigger } from '../popup';
 import { EntitySprite } from '../sprites';
+import { SourceRecipe, SourceResult } from './source-recipe';
 
 export interface Props {
+  resultId: string;
   sources: readonly EntitySource[];
   children: ReactElement<{
     ref?: Ref<HTMLElement>
@@ -19,24 +21,14 @@ export interface Props {
 
 /** Shows non-recipe ways to obtain a solid ingredient. */
 export const EntitySourcePopup = ({
+  resultId,
   sources,
   children,
 }: Props): ReactElement => {
   const popup = usePopupTrigger();
-  const { entityMap } = useGameData();
   const childWithRef = cloneElement(children, {
     ref: popup.triggerRef,
   });
-
-  const byStock = new Map<VendingStock, EntitySource[]>();
-  for (const source of sources) {
-    let group = byStock.get(source.stock);
-    if (!group) {
-      group = [];
-      byStock.set(source.stock, group);
-    }
-    group.push(source);
-  }
 
   return <>
     {childWithRef}
@@ -45,46 +37,64 @@ export const EntitySourcePopup = ({
       placement='below'
       interactive
     >
-      <div className='popup_entity-source'>
-        {Array.from(byStock, ([stock, group]) => {
-          const vendors = new Map<string, string[]>();
-          for (const source of group) {
-            const name = entityMap.get(source.vendor)?.name ?? source.vendor;
-            const ids = vendors.get(name);
-            if (ids) {
-              ids.push(source.vendor);
-            } else {
-              vendors.set(name, [source.vendor]);
-            }
-          }
-
-          return (
-            <div key={stock} className='entity-source'>
-              <div className='entity-source_verb'>
-                {StockText[stock](vendors.size)}
-              </div>
-              {Array.from(vendors, ([name, ids]) =>
-                <SourceVendor key={name} name={name} ids={ids}/>
-              )}
-            </div>
-          );
-        })}
+      <div className='popup_recipe'>
+        <EntitySourceList
+          result={{ type: 'entity', id: resultId }}
+          sources={sources}
+        />
       </div>
     </Popup>
   </>;
 };
 
-const StockText: Readonly<Record<
-  VendingStock,
-  (count: number) => string
->> = {
-  starting: count => count === 1 ? 'Vended from:' : 'Vended from any of:',
-  contraband: count => count === 1
-    ? 'Contraband stock in:'
-    : 'Contraband stock in any of:',
-  emagged: count => count === 1
-    ? 'Emag-only stock in:'
-    : 'Emag-only stock in any of:',
+/** The vending-source content, reusable inside a combined recipe popup. */
+export const EntitySourceList = ({
+  result,
+  sources,
+}: {
+  result: SourceResult;
+  sources: readonly EntitySource[];
+}): ReactElement => {
+  const { entityMap } = useGameData();
+  const byContainer = new Map<string | undefined, EntitySource[]>();
+  for (const source of sources) {
+    const group = byContainer.get(source.container);
+    if (group) {
+      group.push(source);
+    } else {
+      byContainer.set(source.container, [source]);
+    }
+  }
+
+  return (
+    <>
+      {Array.from(byContainer, ([container, group]) => {
+        const vendors = new Map<string, string[]>();
+        for (const source of group) {
+          const name = entityMap.get(source.vendor)?.name ?? source.vendor;
+          const ids = vendors.get(name);
+          if (ids) {
+            ids.push(source.vendor);
+          } else {
+            vendors.set(name, [source.vendor]);
+          }
+        }
+
+        return (
+          <SourceRecipe
+            key={container ?? 'loose'}
+            result={container
+              ? { type: 'entity', id: container }
+              : result}
+          >
+            {Array.from(vendors, ([name, ids]) =>
+              <SourceVendor key={name} name={name} ids={ids}/>
+            )}
+          </SourceRecipe>
+        );
+      })}
+    </>
+  );
 };
 
 interface SourceVendorProps {

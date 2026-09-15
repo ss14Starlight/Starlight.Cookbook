@@ -4,6 +4,7 @@ import {
   Entity,
   MicrowaveRecipeType,
   Reagent,
+  ReagentSourceMethod,
   Recipe,
   SpritePoint,
   Trait,
@@ -78,7 +79,10 @@ export interface SearchableRecipeData {
   /** Food sequence end points indexed by food sequence key. */
   readonly foodSequenceEndPoints: ReadonlyMap<string, readonly string[]>;
 
-  readonly methodSprites: Readonly<Partial<Record<CookingMethod, SpritePoint>>>;
+  readonly methodSprites: Readonly<Partial<Record<
+    CookingMethod | ReagentSourceMethod,
+    SpritePoint
+  >>>;
   readonly beakerFill: SpritePoint;
   /** Frontier */
   readonly microwaveRecipeTypes:

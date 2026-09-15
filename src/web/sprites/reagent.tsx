@@ -4,10 +4,12 @@ import { RawSprite } from './raw';
 
 export interface ReagentSpriteProps {
   id: string;
+  glass?: boolean;
 }
 
 export const ReagentSprite = memo(({
   id,
+  glass = false,
 }: ReagentSpriteProps): ReactElement => {
   const {
     reagentMap,
@@ -16,6 +18,10 @@ export const ReagentSprite = memo(({
   } = useGameData();
 
   const reagent = reagentMap.get(id)!;
+
+  if (glass && reagent.sprite) {
+    return <RawSprite position={reagent.sprite} alt={`${reagent.name} glass`}/>;
+  }
 
   const maskPosition = `-${beakerFill[0]}px -${beakerFill[1]}px`;
 

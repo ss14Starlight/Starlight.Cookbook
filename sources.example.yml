@@ -43,6 +43,8 @@ mystation:
     heatMixture: ChemistryHotplate
     stir: Spoon
     shake: DrinkShaker
+    grind: KitchenReagentGrinder
+    juice: KitchenReagentGrinder
     construct: ClothingHeadHatChef # general recipes
     # Deep frying, supported in two flavours: Frontier's `DeepFrySpawn`
     # component, and the `deepFryingRecipe` prototype that Starlight took from

@@ -13,6 +13,8 @@ base:
     heatMixture: ChemistryHotplate
     stir: Spoon
     shake: DrinkShaker
+    grind: KitchenReagentGrinder
+    juice: KitchenReagentGrinder
     construct: ClothingHeadHatChef # general recipes
     deepFry: null
   mixFillState: beakerlarge4
@@ -123,6 +125,8 @@ frontier:
     heatMixture: ChemistryHotplate
     stir: Spoon
     shake: DrinkShaker
+    grind: KitchenReagentGrinder
+    juice: KitchenReagentGrinder
     construct: ClothingHeadHatChef # general recipes
     deepFry: KitchenDeepFryer
   mixFillState: beakerlarge4

@@ -31,6 +31,7 @@ import {
 } from '../sort';
 import { Tooltip } from '../tooltip';
 import { DisplayMethod } from '../types';
+import { useUrl } from '../url';
 import {
   InitialFilter,
   RecipeFilter,
@@ -47,14 +48,20 @@ export { searchByName };
 
 type SortOrder = 'default' | 'alpha';
 
+export interface Props {
+  /** Restrict this list to a single game-data recipe group. */
+  group?: string;
+}
+
 const SortOptions: DropdownOption[] = [
   { value: 'default', name: 'Default order' },
   { value: 'alpha', name: 'Alphabetic' },
 ];
 
-export const RecipeList = memo((): ReactElement => {
+export const RecipeList = memo(({ group }: Props): ReactElement => {
   const navigate = useNavigate();
   const location = useLocation();
+  const url = useUrl();
 
   const {
     recipeList,
@@ -77,13 +84,19 @@ export const RecipeList = memo((): ReactElement => {
 
   const isFavorite = useIsFavorite();
 
+  const availableRecipes = useMemo(() =>
+    group == null
+      ? recipeList.filter(recipe => recipe.group !== 'Drinks')
+      : recipeList.filter(recipe => recipe.group === group),
+  [recipeList, group]);
+
   const filteredRecipes = useMemo(() => {
-    let recipes = applyFilter(recipeList, filter, entityMap);
+    let recipes = applyFilter(availableRecipes, filter, entityMap);
     if (/\S/.test(search)) {
       recipes = searchByName(recipes, searchableRecipeNames, search);
     }
     return recipes;
-  }, [recipeList, search, filter, searchableRecipeNames]);
+  }, [availableRecipes, search, filter, searchableRecipeNames]);
 
   const sortedRecipes = useMemo(() => {
     let compare: (a: RecipeData, b: RecipeData) => number;
@@ -213,6 +226,8 @@ export const RecipeList = memo((): ReactElement => {
           filter={filter}
           search={search}
           setFilter={setFilter}
+          targetUrl={group == null ? url.recipes : url.drinks}
+          showGroupFilter={group == null}
         />
       </div>
       <IngredientSuggestions
@@ -225,7 +240,7 @@ export const RecipeList = memo((): ReactElement => {
         search={search}
         filter={filter}
         resultCount={sortedRecipes.length}
-        totalCount={recipeList.length}
+        totalCount={availableRecipes.length}
       />
       <RecipeVisibilityProvider>
         <ul className='recipe-list'>

@@ -26,7 +26,10 @@ export interface GameData {
   readonly foodSequenceStartPoints: Readonly<Record<string, readonly string[]>>;
   readonly foodSequenceElements: Readonly<Record<string, readonly string[]>>;
   readonly foodSequenceEndPoints: Readonly<Record<string, readonly string[]>>;
-  readonly methodSprites: Readonly<Record<CookingMethod, SpritePoint>>;
+  readonly methodSprites: Readonly<Record<
+    CookingMethod | ReagentSourceMethod,
+    SpritePoint
+  >>;
   readonly beakerFill: SpritePoint;
   /** Frontier */
   readonly microwaveRecipeTypes:
@@ -74,6 +77,8 @@ export interface EntitySource {
   readonly type: 'vending';
   readonly vendor: string;
   readonly stock: VendingStock;
+  /** The vended package that contains the entity, if it is not sold loose. */
+  readonly container?: string;
 }
 
 export type VendingStock = 'starting' | 'contraband' | 'emagged';
@@ -87,6 +92,8 @@ export interface Reagent {
   readonly id: string;
   readonly name: string;
   readonly color: string;
+  /** Full metamorphic-glass sprite, when defined by the game data. */
+  readonly sprite?: SpritePoint;
   readonly sources: readonly ReagentSource[];
 }
 
@@ -96,7 +103,11 @@ export interface Reagent {
  * recipes -- they'd flood the recipe list with one-ingredient entries -- so
  * they're shown only when hovering over the reagent.
  */
-export interface ReagentSource {
+export type ReagentSource = ReagentEntitySource | ReagentVendingSource;
+
+export interface ReagentEntitySource {
+  /** Absent in older generated data. */
+  readonly type?: 'entity';
   readonly entity: string;
   /**
    * How to get the reagent out. Absent for sources configured through the
@@ -104,6 +115,16 @@ export interface ReagentSource {
    * method.
    */
   readonly method?: ReagentSourceMethod;
+  /** Units of reagent extracted from one entity. Absent in older data. */
+  readonly amount?: number;
+}
+
+/** A reagent contained in a package stocked by a vending machine. */
+export interface ReagentVendingSource {
+  readonly type: 'vending';
+  readonly container: string;
+  readonly vendor: string;
+  readonly stock: VendingStock;
 }
 
 export type ReagentSourceMethod = 'grind' | 'juice';

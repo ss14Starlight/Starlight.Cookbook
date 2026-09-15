@@ -28,6 +28,7 @@ export type Component =
   | SolutionManagerComponent
   | SolutionContainerManagerComponent
   | SolutionSpikerComponent
+  | SpawnItemsOnUseComponent
   | SpriteComponent
   | StomachComponent
   | TagComponent
@@ -133,6 +134,12 @@ export interface Solution {
 export interface SolutionReagent {
   readonly ReagentId: ReagentId;
   readonly Quantity: number;
+}
+
+/** Spawns the contents of a package when it is opened or used. */
+export interface SpawnItemsOnUseComponent {
+  readonly type: 'SpawnItemsOnUse';
+  readonly items?: readonly EntitySpawnEntry[];
 }
 
 export interface IconComponent {
